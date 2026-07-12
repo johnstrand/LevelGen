@@ -46,8 +46,6 @@ public sealed class PrefabDefinition
     {
         get
         {
-#pragma warning disable IDE0079 // Remove unnecessary suppression
-#pragma warning disable IDE0046 // Convert to conditional expression
             if (x < 0 || x >= Width)
             {
                 throw new ArgumentOutOfRangeException(nameof(x));
@@ -57,8 +55,6 @@ public sealed class PrefabDefinition
             {
                 throw new ArgumentOutOfRangeException(nameof(y));
             }
-#pragma warning restore IDE0046 // Convert to conditional expression
-#pragma warning restore IDE0079 // Remove unnecessary suppression
 
             return _tiles[(y * Width) + x];
         }
