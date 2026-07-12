@@ -39,6 +39,14 @@ Useful options:
 - `--no-mirror`: disable mirrored prefab variants
 - `--once`: generate once and exit
 
+## Generation model
+
+- Generation is deterministic for a fixed `Seed` and identical inputs.
+- Prefabs are expanded from connectors using backtracking search.
+- Open connectors with fewer valid candidates are expanded first to reduce dead-end branching.
+- Candidate placements are shuffled with a seeded Fisher-Yates shuffle before recursion.
+- Finalization enforces a contiguous walkable floor region and resolves connectors to floor/wall based on whether they were linked.
+
 ## Use as a library
 
 ```csharp
@@ -93,3 +101,8 @@ Generate a Cobertura coverage report:
 ```powershell
 dotnet test tests\LevelGen.Tests\LevelGen.Tests.csproj --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory .\TestResults\Coverage
 ```
+
+## Troubleshooting prefab input
+
+- `FormatException` during parse typically means a malformed section header (`>`), unsupported token, or tiles before a prefab header.
+- Connectors (`*`) should represent boundary openings. Ambiguous connector orientation can trigger validation errors during variant generation.

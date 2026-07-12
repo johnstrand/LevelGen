@@ -80,6 +80,33 @@ public sealed class ScaffoldTests
         Assert.True(first.Placements.Count >= 1);
     }
 
+    [Fact]
+    public void LevelGenerator_RejectsInvalidMaxPrefabCount()
+    {
+        var prefabSet = BlocksPrefabParser.Parse(LoadBlocksText());
+        var options = new GenerationOptions { Seed = 42, MaxPrefabCount = 0 };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => LevelGenerator.Generate(prefabSet, options));
+    }
+
+    [Fact]
+    public void LevelGenerator_RejectsInvalidTargetWalkableTileCount()
+    {
+        var prefabSet = BlocksPrefabParser.Parse(LoadBlocksText());
+        var options = new GenerationOptions { Seed = 42, TargetWalkableTileCount = 0 };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => LevelGenerator.Generate(prefabSet, options));
+    }
+
+    [Fact]
+    public void LevelGenerator_RejectsInvalidMaxCorridorLength()
+    {
+        var prefabSet = BlocksPrefabParser.Parse(LoadBlocksText());
+        var options = new GenerationOptions { Seed = 42, MaxCorridorLength = 0 };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => LevelGenerator.Generate(prefabSet, options));
+    }
+
     private static string Render(LevelMap map)
     {
         var rows = new string[map.Height];

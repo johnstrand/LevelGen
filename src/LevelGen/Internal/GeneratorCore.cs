@@ -86,10 +86,10 @@ internal static class GeneratorCore
             corridorCandidates = [.. BuildCandidates(state, selectedConnector, corridorVariants, options, isCorridor: true)];
         }
 
-        var orderedCandidates = roomCandidates
-            .Concat(corridorCandidates)
-            .OrderBy(_ => random.Next())
-            .ToArray();
+        var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
+        orderedCandidates.AddRange(roomCandidates);
+        orderedCandidates.AddRange(corridorCandidates);
+        ShuffleInPlace(orderedCandidates, random);
 
         foreach (var candidate in orderedCandidates)
         {
@@ -130,10 +130,10 @@ internal static class GeneratorCore
 
         foreach (var connector in state.OpenConnectors.Values)
         {
-            var score = CountCandidates(state, connector, roomVariants, options, isCorridor: false);
+            var score = CountCandidates(state, connector, roomVariants, options);
             if (score == 0 && options.AllowGeneratedCorridors)
             {
-                score = CountCandidates(state, connector, corridorVariants, options, isCorridor: true);
+                score = CountCandidates(state, connector, corridorVariants, options);
             }
 
             if (score < bestScore)
@@ -150,9 +150,28 @@ internal static class GeneratorCore
         LayoutState state,
         OpenConnector connector,
         IReadOnlyList<PrefabVariant> variants,
-        GenerationOptions options,
-        bool isCorridor) =>
-        BuildCandidates(state, connector, variants, options, isCorridor).Count;
+        GenerationOptions options)
+    {
+        var count = 0;
+        foreach (var variant in variants)
+        {
+            foreach (var connection in variant.Connections)
+            {
+                if (connection.Facing != connector.Facing.Opposite())
+                {
+                    continue;
+                }
+
+                var origin = connector.Position + connector.Facing.Offset() - connection.Position;
+                if (TryValidatePlacement(state, variant, origin, connector, options, out _))
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
 
     private static List<CandidatePlacement> BuildCandidates(
         LayoutState state,
@@ -415,6 +434,15 @@ internal static class GeneratorCore
         }
 
         return visited.Count == walkable.Count;
+    }
+
+    private static void ShuffleInPlace<T>(IList<T> items, Random random)
+    {
+        for (var index = items.Count - 1; index > 0; index--)
+        {
+            var swapIndex = random.Next(index + 1);
+            (items[index], items[swapIndex]) = (items[swapIndex], items[index]);
+        }
     }
 
     private sealed class LayoutState
