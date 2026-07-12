@@ -230,7 +230,7 @@ internal static class GeneratorCore
                     return false;
                 }
 
-                foreach (var direction in Enum.GetValues<Direction>())
+                foreach (var direction in DirectionExtensions.AllDirections)
                 {
                     var neighborPosition = worldPosition + direction.Offset();
                     if (!state.OccupiedTiles.TryGetValue(neighborPosition, out var existingTile) ||
@@ -423,7 +423,7 @@ internal static class GeneratorCore
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            foreach (var direction in Enum.GetValues<Direction>())
+            foreach (var direction in DirectionExtensions.AllDirections)
             {
                 var next = current + direction.Offset();
                 if (walkable.Contains(next) && visited.Add(next))

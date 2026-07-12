@@ -97,7 +97,7 @@ internal static class PrefabVariantFactory
 
     public static bool TryInferConnectorFacing(PrefabDefinition prefab, int x, int y, out Direction facing)
     {
-        var outwardCandidates = Enum.GetValues<Direction>()
+        var outwardCandidates = DirectionExtensions.AllDirections
             .Where(direction => IsOutward(prefab, x, y, direction))
             .ToArray();
 
