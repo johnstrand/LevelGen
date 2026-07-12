@@ -25,7 +25,7 @@ public sealed class ScaffoldTests
     {
         var prefabSet = BlocksPrefabParser.Parse(LoadBlocksText());
 
-        Assert.Equal(8, prefabSet.Count);
+        Assert.Equal(11, prefabSet.Count);
 
         var straightConnector = prefabSet.Single(prefab => prefab.Name == "Straight connector");
         Assert.Equal(5, straightConnector.Width);
