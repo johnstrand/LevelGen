@@ -130,10 +130,10 @@ internal static class GeneratorCore
 
         foreach (var connector in state.OpenConnectors.Values)
         {
-            var score = CountCandidates(state, connector, roomVariants, options);
+            var score = BuildCandidates(state, connector, roomVariants, options, false).Count;
             if (score == 0 && options.AllowGeneratedCorridors)
             {
-                score = CountCandidates(state, connector, corridorVariants, options);
+                score = BuildCandidates(state, connector, corridorVariants, options, false).Count;
             }
 
             if (score < bestScore)
@@ -144,33 +144,6 @@ internal static class GeneratorCore
         }
 
         return bestConnector;
-    }
-
-    private static int CountCandidates(
-        LayoutState state,
-        OpenConnector connector,
-        IReadOnlyList<PrefabVariant> variants,
-        GenerationOptions options)
-    {
-        var count = 0;
-        foreach (var variant in variants)
-        {
-            foreach (var connection in variant.Connections)
-            {
-                if (connection.Facing != connector.Facing.Opposite())
-                {
-                    continue;
-                }
-
-                var origin = connector.Position + connector.Facing.Offset() - connection.Position;
-                if (TryValidatePlacement(state, variant, origin, connector, options, out _))
-                {
-                    count++;
-                }
-            }
-        }
-
-        return count;
     }
 
     private static List<CandidatePlacement> BuildCandidates(
