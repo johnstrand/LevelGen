@@ -43,4 +43,14 @@ public class DirectionExtensionsTests
         // Assert
         Assert.Equal(expectedDirection, result);
     }
+  
+    [Fact]
+    public void Offset_ThrowsArgumentOutOfRangeException_ForInvalidDirection()
+    {
+        var invalidDirection = (Direction)999;
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => invalidDirection.Offset());
+
+        Assert.Equal("direction", exception.ParamName);
+    }
 }

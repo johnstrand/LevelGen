@@ -49,14 +49,10 @@ internal static class BlocksPrefabParserCore
 
         FinalizePrefab(prefabs, rows, ref currentName);
 
-#pragma warning disable IDE0079 // Remove unnecessary suppression
-#pragma warning disable IDE0046 // Convert to conditional expression
         if (prefabs.Count == 0)
         {
             throw new FormatException($"No prefabs were found in the supplied {nameof(BlocksPrefabParser)} input.");
         }
-#pragma warning restore IDE0046 // Convert to conditional expression
-#pragma warning restore IDE0079 // Remove unnecessary suppression
 
         return new PrefabSet(prefabs);
     }
