@@ -209,7 +209,7 @@ internal static class GeneratorCore
         GenerationOptions options,
         out CandidatePlacement candidate)
     {
-        var localConnections = variant.Connections.ToDictionary(connection => connection.Position);
+        var localConnections = variant.LocalConnections;
         var linkedExisting = new HashSet<Point2>();
         var linkedCandidate = new HashSet<Point2>();
 
