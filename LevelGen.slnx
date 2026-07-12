@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LevelGen.Playground/LevelGen.Playground.csproj" />
+    <Project Path="src/LevelGen/LevelGen.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LevelGen.Tests/LevelGen.Tests.csproj" />
+  </Folder>
+</Solution>
