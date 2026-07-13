@@ -2,7 +2,7 @@ namespace LevelGen.Internal;
 
 internal static class GeneratorCore
 {
-    private static readonly Direction[] AllDirections = Enum.GetValues<Direction>();
+    private static readonly Direction[] AllDirections = [Direction.North, Direction.East, Direction.South, Direction.West];
 
     public static GenerationResult Generate(PrefabSet prefabSet, GenerationOptions options)
     {
