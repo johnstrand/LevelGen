@@ -2,6 +2,8 @@ namespace LevelGen.Internal;
 
 internal static class DirectionExtensions
 {
+    public static readonly Direction[] AllDirections = Enum.GetValues<Direction>();
+
     public static Point2 Offset(this Direction direction) =>
         direction switch
         {
