@@ -2,8 +2,6 @@ namespace LevelGen.Internal;
 
 internal static class PrefabVariantFactory
 {
-    private static readonly Direction[] AllDirections = [Direction.North, Direction.East, Direction.South, Direction.West];
-
     public static IReadOnlyList<PrefabConnectionPoint> ExtractConnections(PrefabDefinition prefab)
     {
         ArgumentNullException.ThrowIfNull(prefab);
@@ -99,7 +97,7 @@ internal static class PrefabVariantFactory
 
     public static bool TryInferConnectorFacing(PrefabDefinition prefab, int x, int y, out Direction facing)
     {
-        var outwardCandidates = AllDirections
+        var outwardCandidates = Enum.GetValues<Direction>()
             .Where(direction => IsOutward(prefab, x, y, direction))
             .ToArray();
 
