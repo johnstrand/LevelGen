@@ -2,6 +2,8 @@ namespace LevelGen.Internal;
 
 internal static class GeneratorCore
 {
+    internal static readonly Direction[] AllDirections = Enum.GetValues<Direction>();
+
     public static GenerationResult Generate(PrefabSet prefabSet, GenerationOptions options)
     {
         ArgumentNullException.ThrowIfNull(prefabSet);
@@ -209,7 +211,7 @@ internal static class GeneratorCore
         GenerationOptions options,
         out CandidatePlacement candidate)
     {
-        var localConnections = variant.Connections.ToDictionary(connection => connection.Position);
+        var localConnections = variant.LocalConnections;
         var linkedExisting = new HashSet<Point2>();
         var linkedCandidate = new HashSet<Point2>();
 
@@ -230,7 +232,7 @@ internal static class GeneratorCore
                     return false;
                 }
 
-                foreach (var direction in DirectionExtensions.AllDirections)
+                foreach (var direction in AllDirections)
                 {
                     var neighborPosition = worldPosition + direction.Offset();
                     if (!state.OccupiedTiles.TryGetValue(neighborPosition, out var existingTile) ||
@@ -423,7 +425,7 @@ internal static class GeneratorCore
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            foreach (var direction in DirectionExtensions.AllDirections)
+            foreach (var direction in AllDirections)
             {
                 var next = current + direction.Offset();
                 if (walkable.Contains(next) && visited.Add(next))

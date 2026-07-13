@@ -21,5 +21,7 @@ public sealed class PrefabVariant(
 
     public IReadOnlyList<PrefabConnectionPoint> Connections { get; } = connections?.ToArray() ?? throw new ArgumentNullException(nameof(connections));
 
+    internal IReadOnlyDictionary<Point2, PrefabConnectionPoint> LocalConnections { get; } = connections?.ToDictionary(connection => connection.Position) ?? throw new ArgumentNullException(nameof(connections));
+
     public IReadOnlyList<PrefabDoodad> Doodads { get; } = doodads?.ToArray() ?? throw new ArgumentNullException(nameof(doodads));
 }
