@@ -187,9 +187,51 @@ internal static class GeneratorCore
         GenerationOptions options,
         out CandidatePlacement candidate)
     {
-        var localConnections = variant.LocalConnections;
         var linkedExisting = new HashSet<Point2>();
         var linkedCandidate = new HashSet<Point2>();
+
+        if (!TryValidateTilesAndConnections(state, variant, origin, linkedExisting, linkedCandidate))
+        {
+            candidate = default;
+            return false;
+        }
+
+        if (!linkedExisting.Contains(requiredConnection.Position))
+        {
+            candidate = default;
+            return false;
+        }
+
+        if (!options.AllowLoops && linkedExisting.Count > 1)
+        {
+            candidate = default;
+            return false;
+        }
+
+        if (!TryValidateOutwardConnections(state, variant, origin, linkedCandidate))
+        {
+            candidate = default;
+            return false;
+        }
+
+        candidate = new CandidatePlacement(
+            variant,
+            origin,
+            false,
+            [.. linkedExisting],
+            [.. linkedCandidate]);
+
+        return true;
+    }
+
+    private static bool TryValidateTilesAndConnections(
+        LayoutState state,
+        PrefabVariant variant,
+        Point2 origin,
+        HashSet<Point2> linkedExisting,
+        HashSet<Point2> linkedCandidate)
+    {
+        var localConnections = variant.LocalConnections;
 
         for (var y = 0; y < variant.Height; y++)
         {
@@ -204,7 +246,6 @@ internal static class GeneratorCore
                 var worldPosition = origin + new Point2(x, y);
                 if (state.OccupiedTiles.ContainsKey(worldPosition))
                 {
-                    candidate = default;
                     return false;
                 }
 
@@ -223,7 +264,6 @@ internal static class GeneratorCore
                         localConnection.Facing != direction ||
                         existingConnection.Facing != direction.Opposite())
                     {
-                        candidate = default;
                         return false;
                     }
 
@@ -233,18 +273,15 @@ internal static class GeneratorCore
             }
         }
 
-        if (!linkedExisting.Contains(requiredConnection.Position))
-        {
-            candidate = default;
-            return false;
-        }
+        return true;
+    }
 
-        if (!options.AllowLoops && linkedExisting.Count > 1)
-        {
-            candidate = default;
-            return false;
-        }
-
+    private static bool TryValidateOutwardConnections(
+        LayoutState state,
+        PrefabVariant variant,
+        Point2 origin,
+        HashSet<Point2> linkedCandidate)
+    {
         foreach (var connection in variant.Connections)
         {
             var worldPosition = origin + connection.Position;
@@ -256,17 +293,9 @@ internal static class GeneratorCore
             var outwardPosition = worldPosition + connection.Facing.Offset();
             if (state.OccupiedTiles.ContainsKey(outwardPosition))
             {
-                candidate = default;
                 return false;
             }
         }
-
-        candidate = new CandidatePlacement(
-            variant,
-            origin,
-            false,
-            [.. linkedExisting],
-            [.. linkedCandidate]);
 
         return true;
     }
@@ -425,43 +454,39 @@ internal static class GeneratorCore
 
     private sealed class LayoutState
     {
-        public Dictionary<Point2, TileKind> OccupiedTiles { get; } = [];
+        public Dictionary<Point2, TileKind> OccupiedTiles { get; }
 
-        public Dictionary<Point2, OpenConnector> OpenConnectors { get; } = [];
+        public Dictionary<Point2, OpenConnector> OpenConnectors { get; }
 
-        public HashSet<Point2> ConnectedConnectorPositions { get; } = [];
+        public HashSet<Point2> ConnectedConnectorPositions { get; }
 
-        public List<Placement> Placements { get; } = [];
+        public List<Placement> Placements { get; }
 
         public int RoomPlacementCount { get; set; }
 
         public int CorridorPlacementCount { get; set; }
 
+        public LayoutState()
+        {
+            OccupiedTiles = [];
+            OpenConnectors = [];
+            ConnectedConnectorPositions = [];
+            Placements = [];
+        }
+
+        private LayoutState(LayoutState other)
+        {
+            OccupiedTiles = new(other.OccupiedTiles);
+            OpenConnectors = new(other.OpenConnectors);
+            ConnectedConnectorPositions = new(other.ConnectedConnectorPositions);
+            Placements = new(other.Placements);
+            RoomPlacementCount = other.RoomPlacementCount;
+            CorridorPlacementCount = other.CorridorPlacementCount;
+        }
+
         public LayoutState Clone()
         {
-            var clone = new LayoutState
-            {
-                RoomPlacementCount = RoomPlacementCount,
-                CorridorPlacementCount = CorridorPlacementCount,
-            };
-
-            foreach (var pair in OccupiedTiles)
-            {
-                clone.OccupiedTiles.Add(pair.Key, pair.Value);
-            }
-
-            foreach (var pair in OpenConnectors)
-            {
-                clone.OpenConnectors.Add(pair.Key, pair.Value);
-            }
-
-            foreach (var position in ConnectedConnectorPositions)
-            {
-                clone.ConnectedConnectorPositions.Add(position);
-            }
-
-            clone.Placements.AddRange(Placements);
-            return clone;
+            return new LayoutState(this);
         }
     }
 
