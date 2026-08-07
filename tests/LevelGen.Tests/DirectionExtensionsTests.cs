@@ -53,4 +53,18 @@ public class DirectionExtensionsTests
 
         Assert.Equal("direction", exception.ParamName);
     }
+
+    [Theory]
+    [InlineData(Direction.North, Direction.North)]
+    [InlineData(Direction.East, Direction.West)]
+    [InlineData(Direction.South, Direction.South)]
+    [InlineData(Direction.West, Direction.East)]
+    public void MirrorHorizontally_ReturnsExpectedDirection(Direction initialDirection, Direction expectedDirection)
+    {
+        // Act
+        var result = initialDirection.MirrorHorizontally();
+
+        // Assert
+        Assert.Equal(expectedDirection, result);
+    }
 }

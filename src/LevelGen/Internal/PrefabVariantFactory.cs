@@ -41,40 +41,10 @@ internal static class PrefabVariantFactory
             {
                 var transform = new PrefabTransform(quarterTurns, mirror);
                 var (width, height) = GetTransformedSize(prefab.Width, prefab.Height, transform);
-                var tiles = Enumerable.Repeat(TileKind.Empty, width * height).ToArray();
 
-                for (var y = 0; y < prefab.Height; y++)
-                {
-                    for (var x = 0; x < prefab.Width; x++)
-                    {
-                        var tile = prefab[x, y];
-                        if (tile == TileKind.Connector && !connections.Any(connection => connection.Position == new Point2(x, y)))
-                        {
-                            tile = TileKind.Floor;
-                        }
-
-                        var transformed = TransformPoint(new Point2(x, y), prefab.Width, prefab.Height, transform);
-                        tiles[(transformed.Y * width) + transformed.X] = tile;
-                    }
-                }
-
-                var transformedConnections = connections
-                    .Select(connection => new PrefabConnectionPoint(
-                        TransformPoint(connection.Position, prefab.Width, prefab.Height, transform),
-                        TransformDirection(connection.Facing, transform)))
-                    .OrderBy(connection => connection.Position.Y)
-                    .ThenBy(connection => connection.Position.X)
-                    .ThenBy(connection => connection.Facing)
-                    .ToArray();
-
-                var transformedDoodads = prefab.Doodads
-                    .Select(doodad => new PrefabDoodad(
-                        TransformPoint(doodad.Position, prefab.Width, prefab.Height, transform),
-                        doodad.Marker))
-                    .OrderBy(doodad => doodad.Position.Y)
-                    .ThenBy(doodad => doodad.Position.X)
-                    .ThenBy(doodad => doodad.Marker)
-                    .ToArray();
+                var tiles = TransformTiles(prefab, transform, width, height, connections);
+                var transformedConnections = TransformConnections(prefab, transform, connections);
+                var transformedDoodads = TransformDoodads(prefab, transform);
 
                 var variant = new PrefabVariant(
                     prefab,
@@ -93,6 +63,52 @@ internal static class PrefabVariantFactory
         }
 
         return variants;
+    }
+
+    private static TileKind[] TransformTiles(PrefabDefinition prefab, PrefabTransform transform, int width, int height, IReadOnlyList<PrefabConnectionPoint> connections)
+    {
+        var tiles = Enumerable.Repeat(TileKind.Empty, width * height).ToArray();
+
+        for (var y = 0; y < prefab.Height; y++)
+        {
+            for (var x = 0; x < prefab.Width; x++)
+            {
+                var tile = prefab[x, y];
+                if (tile == TileKind.Connector && !connections.Any(connection => connection.Position == new Point2(x, y)))
+                {
+                    tile = TileKind.Floor;
+                }
+
+                var transformed = TransformPoint(new Point2(x, y), prefab.Width, prefab.Height, transform);
+                tiles[(transformed.Y * width) + transformed.X] = tile;
+            }
+        }
+
+        return tiles;
+    }
+
+    private static PrefabConnectionPoint[] TransformConnections(PrefabDefinition prefab, PrefabTransform transform, IReadOnlyList<PrefabConnectionPoint> connections)
+    {
+        return connections
+            .Select(connection => new PrefabConnectionPoint(
+                TransformPoint(connection.Position, prefab.Width, prefab.Height, transform),
+                TransformDirection(connection.Facing, transform)))
+            .OrderBy(connection => connection.Position.Y)
+            .ThenBy(connection => connection.Position.X)
+            .ThenBy(connection => connection.Facing)
+            .ToArray();
+    }
+
+    private static PrefabDoodad[] TransformDoodads(PrefabDefinition prefab, PrefabTransform transform)
+    {
+        return prefab.Doodads
+            .Select(doodad => new PrefabDoodad(
+                TransformPoint(doodad.Position, prefab.Width, prefab.Height, transform),
+                doodad.Marker))
+            .OrderBy(doodad => doodad.Position.Y)
+            .ThenBy(doodad => doodad.Position.X)
+            .ThenBy(doodad => doodad.Marker)
+            .ToArray();
     }
 
     public static bool TryInferConnectorFacing(PrefabDefinition prefab, int x, int y, out Direction facing)
