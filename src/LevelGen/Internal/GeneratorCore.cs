@@ -185,8 +185,8 @@ internal static class GeneratorCore
         out CandidatePlacement candidate)
     {
         var localConnections = variant.LocalConnections;
-        var linkedExisting = new HashSet<Point2>();
-        var linkedCandidate = new HashSet<Point2>();
+        var linkedExisting = new List<Point2>();
+        var linkedCandidate = new List<Point2>();
 
         for (var y = 0; y < variant.Height; y++)
         {
@@ -224,8 +224,15 @@ internal static class GeneratorCore
                         return false;
                     }
 
-                    linkedExisting.Add(neighborPosition);
-                    linkedCandidate.Add(worldPosition);
+                    if (!linkedExisting.Contains(neighborPosition))
+                    {
+                        linkedExisting.Add(neighborPosition);
+                    }
+
+                    if (!linkedCandidate.Contains(worldPosition))
+                    {
+                        linkedCandidate.Add(worldPosition);
+                    }
                 }
             }
         }
