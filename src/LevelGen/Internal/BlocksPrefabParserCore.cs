@@ -10,7 +10,8 @@ internal static class BlocksPrefabParserCore
         var rows = new List<string>();
         string? currentName = null;
 
-        foreach (var rawLine in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        using var reader = new StringReader(text);
+        while (reader.ReadLine() is { } rawLine)
         {
             var line = rawLine.TrimEnd('\r');
             var trimmedStart = line.TrimStart();
