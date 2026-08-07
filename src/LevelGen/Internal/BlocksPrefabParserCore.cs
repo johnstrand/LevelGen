@@ -81,36 +81,41 @@ internal static class BlocksPrefabParserCore
             for (var x = 0; x < paddedRow.Length; x++)
             {
                 var token = paddedRow[x];
-                switch (token)
-                {
-                    case '#':
-                        tiles.Add(TileKind.Wall);
-                        break;
-                    case '.':
-                        tiles.Add(TileKind.Floor);
-                        break;
-                    case '*':
-                        tiles.Add(TileKind.Connector);
-                        break;
-                    case '?':
-                        tiles.Add(TileKind.Floor);
-                        doodads.Add(new PrefabDoodad(new Point2(x, y), '?'));
-                        break;
-                    case >= 'A' and <= 'P':
-                        tiles.Add(TileKind.Floor);
-                        doodads.Add(new PrefabDoodad(new Point2(x, y), token));
-                        break;
-                    case ' ':
-                        tiles.Add(TileKind.Empty);
-                        break;
-                    default:
-                        throw new FormatException($"Unsupported tile token '{token}' in prefab '{currentName}'.");
-                }
+                ParseToken(token, x, y, currentName, tiles, doodads);
             }
         }
 
         prefabs.Add(new PrefabDefinition(currentName, width, rows.Count, tiles, doodads));
         rows.Clear();
         currentName = null;
+    }
+
+    private static void ParseToken(char token, int x, int y, string currentName, List<TileKind> tiles, List<PrefabDoodad> doodads)
+    {
+        switch (token)
+        {
+            case '#':
+                tiles.Add(TileKind.Wall);
+                break;
+            case '.':
+                tiles.Add(TileKind.Floor);
+                break;
+            case '*':
+                tiles.Add(TileKind.Connector);
+                break;
+            case '?':
+                tiles.Add(TileKind.Floor);
+                doodads.Add(new PrefabDoodad(new Point2(x, y), '?'));
+                break;
+            case >= 'A' and <= 'P':
+                tiles.Add(TileKind.Floor);
+                doodads.Add(new PrefabDoodad(new Point2(x, y), token));
+                break;
+            case ' ':
+                tiles.Add(TileKind.Empty);
+                break;
+            default:
+                throw new FormatException($"Unsupported tile token '{token}' in prefab '{currentName}'.");
+        }
     }
 }
