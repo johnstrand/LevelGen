@@ -451,43 +451,39 @@ internal static class GeneratorCore
 
     private sealed class LayoutState
     {
-        public Dictionary<Point2, TileKind> OccupiedTiles { get; } = [];
+        public Dictionary<Point2, TileKind> OccupiedTiles { get; }
 
-        public Dictionary<Point2, OpenConnector> OpenConnectors { get; } = [];
+        public Dictionary<Point2, OpenConnector> OpenConnectors { get; }
 
-        public HashSet<Point2> ConnectedConnectorPositions { get; } = [];
+        public HashSet<Point2> ConnectedConnectorPositions { get; }
 
-        public List<Placement> Placements { get; } = [];
+        public List<Placement> Placements { get; }
 
         public int RoomPlacementCount { get; set; }
 
         public int CorridorPlacementCount { get; set; }
 
+        public LayoutState()
+        {
+            OccupiedTiles = [];
+            OpenConnectors = [];
+            ConnectedConnectorPositions = [];
+            Placements = [];
+        }
+
+        private LayoutState(LayoutState other)
+        {
+            OccupiedTiles = new(other.OccupiedTiles);
+            OpenConnectors = new(other.OpenConnectors);
+            ConnectedConnectorPositions = new(other.ConnectedConnectorPositions);
+            Placements = new(other.Placements);
+            RoomPlacementCount = other.RoomPlacementCount;
+            CorridorPlacementCount = other.CorridorPlacementCount;
+        }
+
         public LayoutState Clone()
         {
-            var clone = new LayoutState
-            {
-                RoomPlacementCount = RoomPlacementCount,
-                CorridorPlacementCount = CorridorPlacementCount,
-            };
-
-            foreach (var pair in OccupiedTiles)
-            {
-                clone.OccupiedTiles.Add(pair.Key, pair.Value);
-            }
-
-            foreach (var pair in OpenConnectors)
-            {
-                clone.OpenConnectors.Add(pair.Key, pair.Value);
-            }
-
-            foreach (var position in ConnectedConnectorPositions)
-            {
-                clone.ConnectedConnectorPositions.Add(position);
-            }
-
-            clone.Placements.AddRange(Placements);
-            return clone;
+            return new LayoutState(this);
         }
     }
 
