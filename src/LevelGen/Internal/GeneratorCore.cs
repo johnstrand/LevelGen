@@ -64,16 +64,12 @@ internal static class GeneratorCore
             return true;
         }
 
-        var openConnector = ChooseNextConnector(state, roomVariants, corridorVariants, options);
-        if (openConnector is null)
+        if (!ChooseNextConnector(state, roomVariants, corridorVariants, options, out var selectedConnector, out var roomCandidates))
         {
             result = GenerationResult.Empty;
             return TryFinalize(state, out result);
         }
 
-        var selectedConnector = openConnector.Value;
-
-        var roomCandidates = BuildCandidates(state, selectedConnector, roomVariants, options, isCorridor: false);
         var corridorCandidates = Array.Empty<CandidatePlacement>();
 
         var roomCandidateCount = roomCandidates.Count;
@@ -121,18 +117,23 @@ internal static class GeneratorCore
         return false;
     }
 
-    private static OpenConnector? ChooseNextConnector(
+    private static bool ChooseNextConnector(
         LayoutState state,
         IReadOnlyList<PrefabVariant> roomVariants,
         IReadOnlyList<PrefabVariant> corridorVariants,
-        GenerationOptions options)
+        GenerationOptions options,
+        out OpenConnector bestConnector,
+        out List<CandidatePlacement> bestRoomCandidates)
     {
-        OpenConnector? bestConnector = null;
+        bool found = false;
+        bestConnector = default;
+        bestRoomCandidates = null!;
         var bestScore = int.MaxValue;
 
         foreach (var connector in state.OpenConnectors.Values)
         {
-            var score = BuildCandidates(state, connector, roomVariants, options, false).Count;
+            var roomCandidates = BuildCandidates(state, connector, roomVariants, options, false);
+            var score = roomCandidates.Count;
             if (score == 0 && options.AllowGeneratedCorridors)
             {
                 score = BuildCandidates(state, connector, corridorVariants, options, false).Count;
@@ -142,10 +143,12 @@ internal static class GeneratorCore
             {
                 bestScore = score;
                 bestConnector = connector;
+                bestRoomCandidates = roomCandidates;
+                found = true;
             }
         }
 
-        return bestConnector;
+        return found;
     }
 
     private static List<CandidatePlacement> BuildCandidates(
