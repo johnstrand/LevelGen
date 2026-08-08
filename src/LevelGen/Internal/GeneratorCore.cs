@@ -187,8 +187,8 @@ internal static class GeneratorCore
         GenerationOptions options,
         out CandidatePlacement candidate)
     {
-        var linkedExisting = new HashSet<Point2>();
-        var linkedCandidate = new HashSet<Point2>();
+        var linkedExisting = new List<Point2>();
+        var linkedCandidate = new List<Point2>();
 
         if (!TryValidateTilesAndConnections(state, variant, origin, linkedExisting, linkedCandidate))
         {
@@ -228,8 +228,8 @@ internal static class GeneratorCore
         LayoutState state,
         PrefabVariant variant,
         Point2 origin,
-        HashSet<Point2> linkedExisting,
-        HashSet<Point2> linkedCandidate)
+        List<Point2> linkedExisting,
+        List<Point2> linkedCandidate)
     {
         var localConnections = variant.LocalConnections;
 
@@ -267,8 +267,15 @@ internal static class GeneratorCore
                         return false;
                     }
 
-                    linkedExisting.Add(neighborPosition);
-                    linkedCandidate.Add(worldPosition);
+                    if (!linkedExisting.Contains(neighborPosition))
+                    {
+                        linkedExisting.Add(neighborPosition);
+                    }
+
+                    if (!linkedCandidate.Contains(worldPosition))
+                    {
+                        linkedCandidate.Add(worldPosition);
+                    }
                 }
             }
         }
@@ -280,7 +287,7 @@ internal static class GeneratorCore
         LayoutState state,
         PrefabVariant variant,
         Point2 origin,
-        HashSet<Point2> linkedCandidate)
+        List<Point2> linkedCandidate)
     {
         foreach (var connection in variant.Connections)
         {
