@@ -23,41 +23,29 @@ internal sealed record PlaygroundSettings(
 
         var index = 0;
 
+        var actions = new Dictionary<string, Action>
+        {
+            ["--seed"] = () => seed = ParseInt(args, ++index, "--seed"),
+            ["--blocks"] = () => blocksPath = ParseString(args, ++index, "--blocks"),
+            ["--max-prefabs"] = () => maxPrefabCount = ParseInt(args, ++index, "--max-prefabs"),
+            ["--max-corridor-length"] = () => maxCorridorLength = ParseInt(args, ++index, "--max-corridor-length"),
+            ["--no-loops"] = () => allowLoops = false,
+            ["--no-corridors"] = () => allowGeneratedCorridors = false,
+            ["--no-mirror"] = () => allowMirrorTransforms = false,
+            ["--once"] = () => runOnce = true,
+            ["--help"] = () => { WriteUsage(); Environment.Exit(0); },
+            ["-h"] = () => { WriteUsage(); Environment.Exit(0); }
+        };
+
         for (; index < args.Length; index++)
         {
-            switch (args[index])
+            if (actions.TryGetValue(args[index], out var action))
             {
-                case "--seed":
-                    seed = ParseInt(args, ++index, "--seed");
-                    break;
-                case "--blocks":
-                    blocksPath = ParseString(args, ++index, "--blocks");
-                    break;
-                case "--max-prefabs":
-                    maxPrefabCount = ParseInt(args, ++index, "--max-prefabs");
-                    break;
-                case "--max-corridor-length":
-                    maxCorridorLength = ParseInt(args, ++index, "--max-corridor-length");
-                    break;
-                case "--no-loops":
-                    allowLoops = false;
-                    break;
-                case "--no-corridors":
-                    allowGeneratedCorridors = false;
-                    break;
-                case "--no-mirror":
-                    allowMirrorTransforms = false;
-                    break;
-                case "--once":
-                    runOnce = true;
-                    break;
-                case "--help":
-                case "-h":
-                    WriteUsage();
-                    Environment.Exit(0);
-                    break;
-                default:
-                    throw new ArgumentException($"Unknown argument '{args[index]}'. Use --help to see supported options.");
+                action();
+            }
+            else
+            {
+                throw new ArgumentException($"Unknown argument '{args[index]}'. Use --help to see supported options.");
             }
         }
 
