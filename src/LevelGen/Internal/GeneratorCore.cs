@@ -70,24 +70,8 @@ internal static class GeneratorCore
             return TryFinalize(state, out result);
         }
 
-        var corridorCandidates = Array.Empty<CandidatePlacement>();
-
-        var roomCandidateCount = roomCandidates.Count;
-        var canUseCorridors =
-            options.AllowGeneratedCorridors &&
-            corridorVariants.Count > 0 &&
-            state.CorridorPlacementCount < Math.Max(1, targetRoomPlacements * 2) &&
-            (roomCandidateCount == 0 || random.NextDouble() < 0.35);
-
-        if (canUseCorridors)
-        {
-            corridorCandidates = [.. BuildCandidates(state, selectedConnector, corridorVariants, options, isCorridor: true)];
-        }
-
-        var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
-        orderedCandidates.AddRange(roomCandidates);
-        orderedCandidates.AddRange(corridorCandidates);
-        ShuffleInPlace(orderedCandidates, random);
+        var orderedCandidates = GetShuffledCandidates(
+            state, selectedConnector, roomCandidates, corridorVariants, targetRoomPlacements, options, random);
 
         foreach (var candidate in orderedCandidates)
         {
@@ -115,6 +99,37 @@ internal static class GeneratorCore
         state.OpenConnectors[selectedConnector.Position] = selectedConnector;
         result = GenerationResult.Empty;
         return false;
+    }
+
+    private static IList<CandidatePlacement> GetShuffledCandidates(
+        LayoutState state,
+        OpenConnector selectedConnector,
+        List<CandidatePlacement> roomCandidates,
+        IReadOnlyList<PrefabVariant> corridorVariants,
+        int targetRoomPlacements,
+        GenerationOptions options,
+        Random random)
+    {
+        var corridorCandidates = Array.Empty<CandidatePlacement>();
+
+        var roomCandidateCount = roomCandidates.Count;
+        var canUseCorridors =
+            options.AllowGeneratedCorridors &&
+            corridorVariants.Count > 0 &&
+            state.CorridorPlacementCount < Math.Max(1, targetRoomPlacements * 2) &&
+            (roomCandidateCount == 0 || random.NextDouble() < 0.35);
+
+        if (canUseCorridors)
+        {
+            corridorCandidates = [.. BuildCandidates(state, selectedConnector, corridorVariants, options, isCorridor: true)];
+        }
+
+        var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
+        orderedCandidates.AddRange(roomCandidates);
+        orderedCandidates.AddRange(corridorCandidates);
+        ShuffleInPlace(orderedCandidates, random);
+
+        return orderedCandidates;
     }
 
     private static bool ChooseNextConnector(
