@@ -433,10 +433,14 @@ internal static class GeneratorCore
 
     private static bool IsContiguous(IReadOnlyDictionary<Point2, TileKind> tiles)
     {
-        var walkable = tiles
-            .Where(static pair => pair.Value == TileKind.Floor)
-            .Select(static pair => pair.Key)
-            .ToHashSet();
+        var walkable = new HashSet<Point2>();
+        foreach (var pair in tiles)
+        {
+            if (pair.Value == TileKind.Floor)
+            {
+                walkable.Add(pair.Key);
+            }
+        }
 
         if (walkable.Count == 0)
         {
