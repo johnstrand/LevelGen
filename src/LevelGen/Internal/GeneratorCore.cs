@@ -416,7 +416,7 @@ internal static class GeneratorCore
         }
         var width = maxX - minX + 1;
         var height = maxY - minY + 1;
-        var tiles = Enumerable.Repeat(TileKind.Empty, width * height).ToArray();
+        var tiles = new TileKind[width * height];
 
         foreach (var pair in finalized)
         {
