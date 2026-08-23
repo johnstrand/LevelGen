@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace LevelGen.Internal;
 
 internal static class GeneratorCore
@@ -138,11 +140,11 @@ internal static class GeneratorCore
         IReadOnlyList<PrefabVariant> corridorVariants,
         GenerationOptions options,
         out OpenConnector bestConnector,
-        out List<CandidatePlacement> bestRoomCandidates)
+        [NotNullWhen(true)] out List<CandidatePlacement>? bestRoomCandidates)
     {
         bool found = false;
         bestConnector = default;
-        bestRoomCandidates = null!;
+        bestRoomCandidates = null;
         var bestScore = int.MaxValue;
 
         foreach (var connector in state.OpenConnectors.Values)
