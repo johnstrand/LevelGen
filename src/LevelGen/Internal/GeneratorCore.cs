@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace LevelGen.Internal;
 
 internal static class GeneratorCore
@@ -138,11 +140,11 @@ internal static class GeneratorCore
         IReadOnlyList<PrefabVariant> corridorVariants,
         GenerationOptions options,
         out OpenConnector bestConnector,
-        out List<CandidatePlacement> bestRoomCandidates)
+        [NotNullWhen(true)] out List<CandidatePlacement>? bestRoomCandidates)
     {
         bool found = false;
         bestConnector = default;
-        bestRoomCandidates = null!;
+        bestRoomCandidates = null;
         var bestScore = int.MaxValue;
 
         foreach (var connector in state.OpenConnectors.Values)
@@ -402,10 +404,18 @@ internal static class GeneratorCore
             return false;
         }
 
-        var minX = finalized.Keys.Min(static point => point.X);
-        var minY = finalized.Keys.Min(static point => point.Y);
-        var maxX = finalized.Keys.Max(static point => point.X);
-        var maxY = finalized.Keys.Max(static point => point.Y);
+        var minX = int.MaxValue;
+        var minY = int.MaxValue;
+        var maxX = int.MinValue;
+        var maxY = int.MinValue;
+
+        foreach (var point in finalized.Keys)
+        {
+            if (point.X < minX) minX = point.X;
+            if (point.Y < minY) minY = point.Y;
+            if (point.X > maxX) maxX = point.X;
+            if (point.Y > maxY) maxY = point.Y;
+        }
         var width = maxX - minX + 1;
         var height = maxY - minY + 1;
         var tiles = new TileKind[width * height];
@@ -433,10 +443,14 @@ internal static class GeneratorCore
 
     private static bool IsContiguous(IReadOnlyDictionary<Point2, TileKind> tiles)
     {
-        var walkable = tiles
-            .Where(static pair => pair.Value == TileKind.Floor)
-            .Select(static pair => pair.Key)
-            .ToHashSet();
+        var walkable = new HashSet<Point2>();
+        foreach (var pair in tiles)
+        {
+            if (pair.Value == TileKind.Floor)
+            {
+                walkable.Add(pair.Key);
+            }
+        }
 
         if (walkable.Count == 0)
         {

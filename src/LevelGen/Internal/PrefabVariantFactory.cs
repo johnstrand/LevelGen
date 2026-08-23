@@ -33,7 +33,7 @@ internal static class PrefabVariantFactory
         var connections = ExtractConnections(prefab);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var variants = new List<PrefabVariant>();
-        var mirrorStates = allowMirror ? new[] { false, true } : [false];
+        ReadOnlySpan<bool> mirrorStates = allowMirror ? [false, true] : [false];
 
         foreach (var mirror in mirrorStates)
         {
