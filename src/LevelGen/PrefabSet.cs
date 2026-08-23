@@ -11,7 +11,7 @@ public sealed class PrefabSet : IReadOnlyList<PrefabDefinition>
         _prefabs = [.. prefabs];
         var duplicateName = _prefabs
             .GroupBy(prefab => prefab.Name, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault(group => group.Count() > 1);
+            .FirstOrDefault(group => group.Skip(1).Any());
 
         if (duplicateName is not null)
         {
