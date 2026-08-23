@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LevelGen\LevelGen.csproj" />
+    <ProjectReference Include="..\..\src\LevelGen.Playground\LevelGen.Playground.csproj" />
   </ItemGroup>
 
 </Project>
