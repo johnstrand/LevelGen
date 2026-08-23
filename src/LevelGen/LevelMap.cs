@@ -34,7 +34,7 @@ public sealed class LevelMap
         }
     }
 
-    public bool Contains(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height;
+    public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
 
     public IReadOnlyList<TileKind> AsLinearTiles() => _tiles;
 }
