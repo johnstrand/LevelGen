@@ -33,7 +33,7 @@ internal static class PrefabVariantFactory
         var connections = ExtractConnections(prefab);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var variants = new List<PrefabVariant>();
-        var mirrorStates = allowMirror ? new[] { false, true } : [false];
+        ReadOnlySpan<bool> mirrorStates = allowMirror ? [false, true] : [false];
 
         foreach (var mirror in mirrorStates)
         {
@@ -67,7 +67,7 @@ internal static class PrefabVariantFactory
 
     private static TileKind[] TransformTiles(PrefabDefinition prefab, PrefabTransform transform, int width, int height, IReadOnlyList<PrefabConnectionPoint> connections)
     {
-        var tiles = Enumerable.Repeat(TileKind.Empty, width * height).ToArray();
+        var tiles = new TileKind[width * height];
 
         for (var y = 0; y < prefab.Height; y++)
         {
