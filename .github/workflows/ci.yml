@@ -27,4 +27,22 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test --no-build --configuration Release --verbosity normal
+        run: dotnet test --no-build --configuration Release --verbosity normal --settings coverage.runsettings --collect:"XPlat Code Coverage"
+
+      - name: Generate Code Coverage Report
+        uses: danielpalme/ReportGenerator-GitHub-Action@v5
+        with:
+          reports: 'tests/**/TestResults/**/coverage.cobertura.xml'
+          targetdir: 'coveragereport'
+          reporttypes: 'HtmlInline;MarkdownSummary'
+
+      - name: Publish Coverage Summary to GitHub Step Summary
+        run: cat coveragereport/Summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report-ci
+          path: |
+            tests/**/TestResults/**/coverage.cobertura.xml
+            coveragereport/
