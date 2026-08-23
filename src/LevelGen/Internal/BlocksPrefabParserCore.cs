@@ -78,10 +78,10 @@ internal static class BlocksPrefabParserCore
 
         for (var y = 0; y < rows.Count; y++)
         {
-            var paddedRow = rows[y].PadRight(width, ' ');
-            for (var x = 0; x < paddedRow.Length; x++)
+            var row = rows[y];
+            for (var x = 0; x < width; x++)
             {
-                var token = paddedRow[x];
+                var token = x < row.Length ? row[x] : ' ';
                 ParseToken(token, x, y, currentName, tiles, doodads);
             }
         }
