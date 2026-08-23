@@ -43,7 +43,8 @@ while (true)
     }
 
     Console.Write("> ");
-    var input = Console.ReadLine()?.Trim();
+    var rawInput = Console.ReadLine();
+    var input = (rawInput?.Length > 64 ? rawInput[..64] : rawInput)?.Trim();
     if (string.Equals(input, "q", StringComparison.OrdinalIgnoreCase))
     {
         break;
