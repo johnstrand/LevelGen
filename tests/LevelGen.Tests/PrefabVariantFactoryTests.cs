@@ -229,4 +229,94 @@ public sealed class PrefabVariantFactoryTests
         var exception = Assert.Throws<InvalidOperationException>(() => PrefabVariantFactory.ExtractConnections(prefab));
         Assert.Equal("Connector at (0, 0) in prefab 'MultipleInward' must expose exactly one outward-facing side.", exception.Message);
     }
+
+    [Fact]
+    public void CreateVariants_NullPrefab_ThrowsArgumentNullException()
+    {
+        var exception = Assert.Throws<ArgumentNullException>(() => PrefabVariantFactory.CreateVariants(null!, allowMirror: false));
+        Assert.Equal("prefab", exception.ParamName);
+    }
+
+    [Fact]
+    public void CreateVariants_AsymmetricPrefab_NoMirror_GeneratesFourRotationalVariants()
+    {
+        // Asymmetric 2x3 prefab with connector at (1, 0) and a doodad at (0, 1)
+        // W C
+        // D F
+        // W W
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Connector,
+            TileKind.Floor, TileKind.Floor,
+            TileKind.Wall, TileKind.Wall,
+        };
+        var doodads = new[] { new PrefabDoodad(new Point2(0, 1), 'C') };
+        var prefab = new PrefabDefinition("Asymmetric", 2, 3, tiles, doodads);
+
+        var variants = PrefabVariantFactory.CreateVariants(prefab, allowMirror: false);
+
+        Assert.Equal(4, variants.Count);
+        Assert.All(variants, v => Assert.False(v.Transform.MirrorHorizontally));
+        Assert.Contains(variants, v => v.Transform.QuarterTurnsClockwise == 0 && v.Width == 2 && v.Height == 3);
+        Assert.Contains(variants, v => v.Transform.QuarterTurnsClockwise == 1 && v.Width == 3 && v.Height == 2);
+        Assert.Contains(variants, v => v.Transform.QuarterTurnsClockwise == 2 && v.Width == 2 && v.Height == 3);
+        Assert.Contains(variants, v => v.Transform.QuarterTurnsClockwise == 3 && v.Width == 3 && v.Height == 2);
+    }
+
+    [Fact]
+    public void CreateVariants_AsymmetricPrefab_AllowMirror_GeneratesEightVariants()
+    {
+        // Asymmetric 2x3 prefab
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Connector,
+            TileKind.Floor, TileKind.Floor,
+            TileKind.Wall, TileKind.Wall,
+        };
+        var doodads = new[] { new PrefabDoodad(new Point2(0, 1), 'C') };
+        var prefab = new PrefabDefinition("AsymmetricMirror", 2, 3, tiles, doodads);
+
+        var variants = PrefabVariantFactory.CreateVariants(prefab, allowMirror: true);
+
+        Assert.Equal(8, variants.Count);
+    }
+
+    [Fact]
+    public void CreateVariants_SymmetricPrefab_DeduplicatesIdenticalVariants()
+    {
+        // Fully symmetric 3x3 square room with identical connectors on all 4 sides
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Connector, TileKind.Wall,
+            TileKind.Connector, TileKind.Floor, TileKind.Connector,
+            TileKind.Wall, TileKind.Connector, TileKind.Wall,
+        };
+        var prefab = new PrefabDefinition("Symmetric", 3, 3, tiles);
+
+        var variants = PrefabVariantFactory.CreateVariants(prefab, allowMirror: true);
+
+        // Since all 4 rotations and mirrored versions result in identical tile/connection keys,
+        // deduplication should yield exactly 1 variant.
+        Assert.Single(variants);
+    }
+
+    [Fact]
+    public void CreateVariants_UnextractedConnector_ReplacedWithFloorInVariantTiles()
+    {
+        // 3x3 room with an inner connector surrounded by walls (will not be extracted as connection point)
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Wall, TileKind.Wall,
+            TileKind.Wall, TileKind.Connector, TileKind.Wall,
+            TileKind.Wall, TileKind.Wall, TileKind.Wall,
+        };
+        var prefab = new PrefabDefinition("InnerConnectorRoom", 3, 3, tiles);
+
+        var variants = PrefabVariantFactory.CreateVariants(prefab, allowMirror: false);
+
+        var variant = Assert.Single(variants); // Fully symmetric -> 1 variant
+        Assert.Empty(variant.Connections);
+        // Center tile at index 4 (1, 1) should be replaced with TileKind.Floor
+        Assert.Equal(TileKind.Floor, variant.Tiles[(1 * variant.Width) + 1]);
+    }
 }

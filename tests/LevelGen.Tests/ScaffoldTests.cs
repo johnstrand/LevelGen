@@ -21,6 +21,13 @@ public sealed class ScaffoldTests
     }
 
     [Fact]
+    public void Parser_ThrowsFormatException_WhenPrefabNameIsBlank()
+    {
+        var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse("> \n .#"));
+        Assert.Equal("Prefab names cannot be blank.", exception.Message);
+    }
+
+    [Fact]
     public void Parser_ReadsBlocksFilePrefabsAndDoodads()
     {
         var prefabSet = BlocksPrefabParser.Parse(LoadBlocksText());
