@@ -29,6 +29,9 @@ internal static class GeneratorCore
         var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
         var random = new Random(options.Seed);
 
+        GenerationResult? bestResult = null;
+        int minDeviation = int.MaxValue;
+
         for (var attempt = 0; attempt < 12; attempt++)
         {
             var seed = roomVariants[random.Next(roomVariants.Length)];
@@ -37,11 +40,52 @@ internal static class GeneratorCore
 
             if (TryExpand(state, roomVariants, corridorVariants, targetRoomPlacements, options, random, depth: 0, out var result))
             {
-                return result;
+                var deviation = CalculateDeviation(result.Map.Width, result.Map.Height, options);
+                if (deviation == 0)
+                {
+                    return result;
+                }
+
+                if (deviation < minDeviation)
+                {
+                    minDeviation = deviation;
+                    bestResult = result;
+                }
             }
         }
 
+        if (bestResult != null)
+        {
+            return bestResult;
+        }
+
         throw new InvalidOperationException("Unable to generate a valid contiguous level from the supplied prefabs.");
+    }
+
+    private static int CalculateDeviation(int width, int height, GenerationOptions options)
+    {
+        int dev = 0;
+        if (options.MinWidth.HasValue && width < options.MinWidth.Value)
+        {
+            dev += options.MinWidth.Value - width;
+        }
+
+        if (options.MaxWidth.HasValue && width > options.MaxWidth.Value)
+        {
+            dev += width - options.MaxWidth.Value;
+        }
+
+        if (options.MinHeight.HasValue && height < options.MinHeight.Value)
+        {
+            dev += options.MinHeight.Value - height;
+        }
+
+        if (options.MaxHeight.HasValue && height > options.MaxHeight.Value)
+        {
+            dev += height - options.MaxHeight.Value;
+        }
+
+        return dev;
     }
 
     private static bool TryExpand(
@@ -64,6 +108,17 @@ internal static class GeneratorCore
             (state.OpenConnectors.Count == 0 && TryFinalize(state, out result)))
         {
             return true;
+        }
+
+        if (options.MaxWidth.HasValue || options.MaxHeight.HasValue)
+        {
+            var (minX, minY, currentW, currentH) = CalculateStateBounds(state);
+            if ((options.MaxWidth.HasValue && currentW > options.MaxWidth.Value) ||
+                (options.MaxHeight.HasValue && currentH > options.MaxHeight.Value))
+            {
+                result = GenerationResult.Empty;
+                return false;
+            }
         }
 
         if (!ChooseNextConnector(state, roomVariants, corridorVariants, options, out var selectedConnector, out var roomCandidates))
@@ -193,7 +248,75 @@ internal static class GeneratorCore
             }
         }
 
+        if ((options.MaxWidth.HasValue || options.MaxHeight.HasValue) && candidates.Count > 1)
+        {
+            var fittingCandidates = new List<CandidatePlacement>();
+            foreach (var candidate in candidates)
+            {
+                if (PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, options.MaxWidth, options.MaxHeight))
+                {
+                    fittingCandidates.Add(candidate);
+                }
+            }
+
+            if (fittingCandidates.Count > 0)
+            {
+                return fittingCandidates;
+            }
+        }
+
         return candidates;
+    }
+
+    private static bool PlacementFitsMaxBounds(
+        LayoutState state,
+        PrefabVariant variant,
+        Point2 origin,
+        int? maxWidth,
+        int? maxHeight)
+    {
+        var minX = int.MaxValue;
+        var minY = int.MaxValue;
+        var maxX = int.MinValue;
+        var maxY = int.MinValue;
+
+        foreach (var point in state.OccupiedTiles.Keys)
+        {
+            if (point.X < minX) minX = point.X;
+            if (point.Y < minY) minY = point.Y;
+            if (point.X > maxX) maxX = point.X;
+            if (point.Y > maxY) maxY = point.Y;
+        }
+
+        for (var y = 0; y < variant.Height; y++)
+        {
+            for (var x = 0; x < variant.Width; x++)
+            {
+                var tile = variant.Tiles[(y * variant.Width) + x];
+                if (tile == TileKind.Empty)
+                {
+                    continue;
+                }
+
+                var pt = origin + new Point2(x, y);
+                if (pt.X < minX) minX = pt.X;
+                if (pt.Y < minY) minY = pt.Y;
+                if (pt.X > maxX) maxX = pt.X;
+                if (pt.Y > maxY) maxY = pt.Y;
+            }
+        }
+
+        if (maxWidth.HasValue && (maxX - minX + 1) > maxWidth.Value)
+        {
+            return false;
+        }
+
+        if (maxHeight.HasValue && (maxY - minY + 1) > maxHeight.Value)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryValidatePlacement(
@@ -407,6 +530,31 @@ internal static class GeneratorCore
         }
 
         return finalized;
+    }
+
+    private static (int MinX, int MinY, int Width, int Height) CalculateStateBounds(LayoutState state)
+    {
+        if (state.OccupiedTiles.Count == 0)
+        {
+            return (0, 0, 0, 0);
+        }
+
+        var minX = int.MaxValue;
+        var minY = int.MaxValue;
+        var maxX = int.MinValue;
+        var maxY = int.MinValue;
+
+        foreach (var point in state.OccupiedTiles.Keys)
+        {
+            if (point.X < minX) minX = point.X;
+            if (point.Y < minY) minY = point.Y;
+            if (point.X > maxX) maxX = point.X;
+            if (point.Y > maxY) maxY = point.Y;
+        }
+
+        var width = maxX - minX + 1;
+        var height = maxY - minY + 1;
+        return (minX, minY, width, height);
     }
 
     private static (int MinX, int MinY, int Width, int Height) CalculateBounds(Dictionary<Point2, TileKind> finalized)
