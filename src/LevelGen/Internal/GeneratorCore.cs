@@ -380,6 +380,21 @@ internal static class GeneratorCore
             return false;
         }
 
+        var finalized = BuildFinalizedTiles(state);
+
+        if (!IsContiguous(finalized))
+        {
+            result = GenerationResult.Empty;
+            return false;
+        }
+
+        var bounds = CalculateBounds(finalized);
+        result = BuildGenerationResult(state, finalized, bounds);
+        return true;
+    }
+
+    private static Dictionary<Point2, TileKind> BuildFinalizedTiles(LayoutState state)
+    {
         var finalized = new Dictionary<Point2, TileKind>(state.OccupiedTiles.Count);
         foreach (var pair in state.OccupiedTiles)
         {
@@ -391,12 +406,11 @@ internal static class GeneratorCore
             };
         }
 
-        if (!IsContiguous(finalized))
-        {
-            result = GenerationResult.Empty;
-            return false;
-        }
+        return finalized;
+    }
 
+    private static (int MinX, int MinY, int Width, int Height) CalculateBounds(Dictionary<Point2, TileKind> finalized)
+    {
         var minX = int.MaxValue;
         var minY = int.MaxValue;
         var maxX = int.MinValue;
@@ -409,8 +423,18 @@ internal static class GeneratorCore
             if (point.X > maxX) maxX = point.X;
             if (point.Y > maxY) maxY = point.Y;
         }
+
         var width = maxX - minX + 1;
         var height = maxY - minY + 1;
+        return (minX, minY, width, height);
+    }
+
+    private static GenerationResult BuildGenerationResult(
+        LayoutState state,
+        Dictionary<Point2, TileKind> finalized,
+        (int MinX, int MinY, int Width, int Height) bounds)
+    {
+        var (minX, minY, width, height) = bounds;
         var tiles = new TileKind[width * height];
 
         foreach (var pair in finalized)
@@ -430,8 +454,7 @@ internal static class GeneratorCore
                 placement.IsCorridor))
             .ToArray();
 
-        result = new GenerationResult(new LevelMap(tiles, width, height), placedPrefabs);
-        return true;
+        return new GenerationResult(new LevelMap(tiles, width, height), placedPrefabs);
     }
 
     private static bool IsContiguous(IReadOnlyDictionary<Point2, TileKind> tiles)
