@@ -6,8 +6,7 @@ namespace LevelGen.Benchmarks
     {
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<GeneratorBenchmark>();
-            BenchmarkRunner.Run<ParserBenchmark>();
+            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }
 }

@@ -68,13 +68,14 @@ internal static class PrefabVariantFactory
     private static TileKind[] TransformTiles(PrefabDefinition prefab, PrefabTransform transform, int width, int height, IReadOnlyList<PrefabConnectionPoint> connections)
     {
         var tiles = new TileKind[width * height];
+        var connectionPositions = connections.Select(connection => connection.Position).ToHashSet();
 
         for (var y = 0; y < prefab.Height; y++)
         {
             for (var x = 0; x < prefab.Width; x++)
             {
                 var tile = prefab[x, y];
-                if (tile == TileKind.Connector && !connections.Any(connection => connection.Position == new Point2(x, y)))
+                if (tile == TileKind.Connector && !connectionPositions.Contains(new Point2(x, y)))
                 {
                     tile = TileKind.Floor;
                 }
