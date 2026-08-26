@@ -76,6 +76,80 @@ public sealed class PrefabVariantFactoryTests
         Assert.Equal(new Point2(expectedX, expectedY), result);
     }
 
+    [Theory]
+    // Identity (0 turns, no mirror)
+    [InlineData(Direction.North, 0, false, Direction.North)]
+    [InlineData(Direction.East, 0, false, Direction.East)]
+    [InlineData(Direction.South, 0, false, Direction.South)]
+    [InlineData(Direction.West, 0, false, Direction.West)]
+
+    // Rotations without mirror
+    // 1 turn clockwise
+    [InlineData(Direction.North, 1, false, Direction.East)]
+    [InlineData(Direction.East, 1, false, Direction.South)]
+    [InlineData(Direction.South, 1, false, Direction.West)]
+    [InlineData(Direction.West, 1, false, Direction.North)]
+    // 2 turns clockwise
+    [InlineData(Direction.North, 2, false, Direction.South)]
+    [InlineData(Direction.East, 2, false, Direction.West)]
+    [InlineData(Direction.South, 2, false, Direction.North)]
+    [InlineData(Direction.West, 2, false, Direction.East)]
+    // 3 turns clockwise
+    [InlineData(Direction.North, 3, false, Direction.West)]
+    [InlineData(Direction.East, 3, false, Direction.North)]
+    [InlineData(Direction.South, 3, false, Direction.East)]
+    [InlineData(Direction.West, 3, false, Direction.South)]
+
+    // Horizontal mirror only (0 turns)
+    // Mirror flips East <-> West, North/South remain unchanged
+    [InlineData(Direction.North, 0, true, Direction.North)]
+    [InlineData(Direction.East, 0, true, Direction.West)]
+    [InlineData(Direction.South, 0, true, Direction.South)]
+    [InlineData(Direction.West, 0, true, Direction.East)]
+
+    // Horizontal mirror + rotations
+    // Mirror then 1 turn clockwise:
+    // North -> Mirror(North)=North -> Rotate1=East
+    [InlineData(Direction.North, 1, true, Direction.East)]
+    // East -> Mirror(East)=West -> Rotate1=North
+    [InlineData(Direction.East, 1, true, Direction.North)]
+    // South -> Mirror(South)=South -> Rotate1=West
+    [InlineData(Direction.South, 1, true, Direction.West)]
+    // West -> Mirror(West)=East -> Rotate1=South
+    [InlineData(Direction.West, 1, true, Direction.South)]
+
+    // Mirror then 2 turns clockwise:
+    // North -> Mirror(North)=North -> Rotate2=South
+    [InlineData(Direction.North, 2, true, Direction.South)]
+    // East -> Mirror(East)=West -> Rotate2=East
+    [InlineData(Direction.East, 2, true, Direction.East)]
+    // South -> Mirror(South)=South -> Rotate2=North
+    [InlineData(Direction.South, 2, true, Direction.North)]
+    // West -> Mirror(West)=East -> Rotate2=West
+    [InlineData(Direction.West, 2, true, Direction.West)]
+
+    // Mirror then 3 turns clockwise:
+    // North -> Mirror(North)=North -> Rotate3=West
+    [InlineData(Direction.North, 3, true, Direction.West)]
+    // East -> Mirror(East)=West -> Rotate3=South
+    [InlineData(Direction.East, 3, true, Direction.South)]
+    // South -> Mirror(South)=South -> Rotate3=East
+    [InlineData(Direction.South, 3, true, Direction.East)]
+    // West -> Mirror(West)=East -> Rotate3=North
+    [InlineData(Direction.West, 3, true, Direction.North)]
+    public void TransformDirection_ReturnsExpectedDirection(
+        Direction initialDirection,
+        int quarterTurns,
+        bool mirror,
+        Direction expectedDirection)
+    {
+        var transform = new PrefabTransform(quarterTurns, mirror);
+
+        var result = PrefabVariantFactory.TransformDirection(initialDirection, transform);
+
+        Assert.Equal(expectedDirection, result);
+    }
+
     [Fact]
     public void ExtractConnections_NullPrefab_ThrowsArgumentNullException()
     {
