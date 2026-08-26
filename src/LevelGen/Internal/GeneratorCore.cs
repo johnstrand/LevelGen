@@ -28,17 +28,18 @@ internal static class GeneratorCore
 
         var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
         var random = new Random(options.Seed);
+        var context = new GeneratorContext(roomVariants, corridorVariants, targetRoomPlacements, options, random);
 
         GenerationResult? bestResult = null;
         int minDeviation = int.MaxValue;
 
         for (var attempt = 0; attempt < 12; attempt++)
         {
-            var seed = roomVariants[random.Next(roomVariants.Length)];
+            var seed = context.RoomVariants[context.Random.Next(context.RoomVariants.Count)];
             var state = new LayoutState();
             AddPlacement(state, seed, new Point2(0, 0), isCorridor: false, [], []);
 
-            if (TryExpand(state, roomVariants, corridorVariants, targetRoomPlacements, options, random, depth: 0, out var result))
+            if (TryExpand(context, state, depth: 0, out var result))
             {
                 var deviation = CalculateDeviation(result.Map.Width, result.Map.Height, options);
                 if (deviation == 0)
@@ -89,12 +90,8 @@ internal static class GeneratorCore
     }
 
     private static bool TryExpand(
+        GeneratorContext context,
         LayoutState state,
-        IReadOnlyList<PrefabVariant> roomVariants,
-        IReadOnlyList<PrefabVariant> corridorVariants,
-        int targetRoomPlacements,
-        GenerationOptions options,
-        Random random,
         int depth,
         out GenerationResult result)
     {
@@ -104,31 +101,31 @@ internal static class GeneratorCore
             return false;
         }
 
-        if ((state.RoomPlacementCount >= targetRoomPlacements && TryFinalize(state, out result)) ||
+        if ((state.RoomPlacementCount >= context.TargetRoomPlacements && TryFinalize(state, out result)) ||
             (state.OpenConnectors.Count == 0 && TryFinalize(state, out result)))
         {
             return true;
         }
 
-        if (options.MaxWidth.HasValue || options.MaxHeight.HasValue)
+        if (context.Options.MaxWidth.HasValue || context.Options.MaxHeight.HasValue)
         {
             var (minX, minY, currentW, currentH) = CalculateStateBounds(state);
-            if ((options.MaxWidth.HasValue && currentW > options.MaxWidth.Value) ||
-                (options.MaxHeight.HasValue && currentH > options.MaxHeight.Value))
+            if ((context.Options.MaxWidth.HasValue && currentW > context.Options.MaxWidth.Value) ||
+                (context.Options.MaxHeight.HasValue && currentH > context.Options.MaxHeight.Value))
             {
                 result = GenerationResult.Empty;
                 return false;
             }
         }
 
-        if (!ChooseNextConnector(state, roomVariants, corridorVariants, options, out var selectedConnector, out var roomCandidates))
+        if (!ChooseNextConnector(context, state, out var selectedConnector, out var roomCandidates))
         {
             result = GenerationResult.Empty;
             return TryFinalize(state, out result);
         }
 
         var orderedCandidates = GetShuffledCandidates(
-            state, selectedConnector, roomCandidates, corridorVariants, targetRoomPlacements, options, random);
+            context, state, selectedConnector, roomCandidates);
 
         foreach (var candidate in orderedCandidates)
         {
@@ -141,14 +138,14 @@ internal static class GeneratorCore
                 candidate.LinkedExistingConnectorPositions,
                 candidate.LinkedCandidateConnectorPositions);
 
-            if (TryExpand(nextState, roomVariants, corridorVariants, targetRoomPlacements, options, random, depth + 1, out result))
+            if (TryExpand(context, nextState, depth + 1, out result))
             {
                 return true;
             }
         }
 
         if (state.OpenConnectors.Remove(selectedConnector.Position) &&
-            TryExpand(state, roomVariants, corridorVariants, targetRoomPlacements, options, random, depth + 1, out result))
+            TryExpand(context, state, depth + 1, out result))
         {
             return true;
         }
@@ -159,41 +156,36 @@ internal static class GeneratorCore
     }
 
     private static IList<CandidatePlacement> GetShuffledCandidates(
+        GeneratorContext context,
         LayoutState state,
         OpenConnector selectedConnector,
-        List<CandidatePlacement> roomCandidates,
-        IReadOnlyList<PrefabVariant> corridorVariants,
-        int targetRoomPlacements,
-        GenerationOptions options,
-        Random random)
+        List<CandidatePlacement> roomCandidates)
     {
         var corridorCandidates = Array.Empty<CandidatePlacement>();
 
         var roomCandidateCount = roomCandidates.Count;
         var canUseCorridors =
-            options.AllowGeneratedCorridors &&
-            corridorVariants.Count > 0 &&
-            state.CorridorPlacementCount < Math.Max(1, targetRoomPlacements * 2) &&
-            (roomCandidateCount == 0 || random.NextDouble() < 0.35);
+            context.Options.AllowGeneratedCorridors &&
+            context.CorridorVariants.Count > 0 &&
+            state.CorridorPlacementCount < Math.Max(1, context.TargetRoomPlacements * 2) &&
+            (roomCandidateCount == 0 || context.Random.NextDouble() < 0.35);
 
         if (canUseCorridors)
         {
-            corridorCandidates = [.. BuildCandidates(state, selectedConnector, corridorVariants, options, isCorridor: true)];
+            corridorCandidates = [.. BuildCandidates(context, state, selectedConnector, context.CorridorVariants, isCorridor: true)];
         }
 
         var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
         orderedCandidates.AddRange(roomCandidates);
         orderedCandidates.AddRange(corridorCandidates);
-        ShuffleInPlace(orderedCandidates, random);
+        ShuffleInPlace(orderedCandidates, context.Random);
 
         return orderedCandidates;
     }
 
     private static bool ChooseNextConnector(
+        GeneratorContext context,
         LayoutState state,
-        IReadOnlyList<PrefabVariant> roomVariants,
-        IReadOnlyList<PrefabVariant> corridorVariants,
-        GenerationOptions options,
         out OpenConnector bestConnector,
         [NotNullWhen(true)] out List<CandidatePlacement>? bestRoomCandidates)
     {
@@ -204,11 +196,11 @@ internal static class GeneratorCore
 
         foreach (var connector in state.OpenConnectors.Values)
         {
-            var roomCandidates = BuildCandidates(state, connector, roomVariants, options, false);
+            var roomCandidates = BuildCandidates(context, state, connector, context.RoomVariants, isCorridor: false);
             var score = roomCandidates.Count;
-            if (score == 0 && options.AllowGeneratedCorridors)
+            if (score == 0 && context.Options.AllowGeneratedCorridors)
             {
-                score = BuildCandidates(state, connector, corridorVariants, options, false).Count;
+                score = BuildCandidates(context, state, connector, context.CorridorVariants, isCorridor: false).Count;
             }
 
             if (score < bestScore)
@@ -224,10 +216,10 @@ internal static class GeneratorCore
     }
 
     private static List<CandidatePlacement> BuildCandidates(
+        GeneratorContext context,
         LayoutState state,
         OpenConnector openConnector,
         IReadOnlyList<PrefabVariant> variants,
-        GenerationOptions options,
         bool isCorridor)
     {
         var candidates = new List<CandidatePlacement>();
@@ -241,19 +233,19 @@ internal static class GeneratorCore
                 }
 
                 var origin = openConnector.Position + openConnector.Facing.Offset() - connection.Position;
-                if (TryValidatePlacement(state, variant, origin, openConnector, options, out var candidate))
+                if (TryValidatePlacement(context, state, variant, origin, openConnector, out var candidate))
                 {
                     candidates.Add(candidate with { IsCorridor = isCorridor });
                 }
             }
         }
 
-        if ((options.MaxWidth.HasValue || options.MaxHeight.HasValue) && candidates.Count > 1)
+        if ((context.Options.MaxWidth.HasValue || context.Options.MaxHeight.HasValue) && candidates.Count > 1)
         {
             var fittingCandidates = new List<CandidatePlacement>();
             foreach (var candidate in candidates)
             {
-                if (PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, options.MaxWidth, options.MaxHeight))
+                if (PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, context.Options.MaxWidth, context.Options.MaxHeight))
                 {
                     fittingCandidates.Add(candidate);
                 }
@@ -320,11 +312,11 @@ internal static class GeneratorCore
     }
 
     private static bool TryValidatePlacement(
+        GeneratorContext context,
         LayoutState state,
         PrefabVariant variant,
         Point2 origin,
         OpenConnector requiredConnection,
-        GenerationOptions options,
         out CandidatePlacement candidate)
     {
         var linkedExisting = new HashSet<Point2>();
@@ -342,7 +334,7 @@ internal static class GeneratorCore
             return false;
         }
 
-        if (!options.AllowLoops && linkedExisting.Count > 1)
+        if (!context.Options.AllowLoops && linkedExisting.Count > 1)
         {
             candidate = default;
             return false;
