@@ -17,12 +17,7 @@ public class GeneratorCoreTests
     [Fact]
     public void Generate_WithMaxWidthAndMaxHeight_ConstrainsDimensions()
     {
-        var prefabSet = BlocksPrefabParser.Parse("""
-            > Room
-            ###
-            *.*
-            ###
-            """);
+        var prefabSet = BlocksPrefabParser.Parse(TestPrefabs.Standard3x3Room);
 
         var options = new GenerationOptions
         {
@@ -43,10 +38,7 @@ public class GeneratorCoreTests
     [Fact]
     public void Generate_WhenImpossibleToSatisfyMinSize_ReturnsBestEffortResultWithoutThrowing()
     {
-        var prefabSet = BlocksPrefabParser.Parse("""
-            > SmallRoom
-            .
-            """);
+        var prefabSet = BlocksPrefabParser.Parse(TestPrefabs.SmallRoom1x1);
 
         var options = new GenerationOptions
         {

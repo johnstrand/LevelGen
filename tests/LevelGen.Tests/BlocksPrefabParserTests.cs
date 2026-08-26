@@ -8,7 +8,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_TilesBeforeSectionHeader_ThrowsFormatException()
     {
-        const string input = "..##\n> Name";
+        var input = TestPrefabs.TilesBeforeHeaderShort;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
 
@@ -18,11 +18,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_WithTilesBeforeHeader_ThrowsFormatException()
     {
-        var input = """
-            #.
-            > TestRoom
-            #.
-            """;
+        var input = TestPrefabs.TilesBeforeHeaderTestRoom;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
         Assert.Contains("Encountered prefab tiles before a section header", exception.Message);
@@ -31,7 +27,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_BlankPrefabName_ThrowsFormatException()
     {
-        const string input = ">\n..##";
+        var input = TestPrefabs.BlankHeaderFollowedByTiles;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
 
@@ -41,10 +37,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_WithBlankPrefabName_ThrowsFormatException()
     {
-        var input = """
-            >
-            #.
-            """;
+        var input = TestPrefabs.BlankHeaderInTextBlock;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
         Assert.Contains("Prefab names cannot be blank", exception.Message);
@@ -53,7 +46,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_UnsupportedTileToken_ThrowsFormatException()
     {
-        const string input = "> Room\n..+";
+        var input = TestPrefabs.RoomWithUnsupportedToken;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
 
@@ -63,11 +56,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_WithUnsupportedTileToken_ThrowsFormatException()
     {
-        var input = """
-            > TestRoom
-            #.
-            #+
-            """;
+        var input = TestPrefabs.TestRoomWithUnsupportedToken;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
         Assert.Contains("Unsupported tile token '+' in prefab 'TestRoom'", exception.Message);
@@ -76,7 +65,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_NoPrefabsFound_ThrowsFormatException()
     {
-        const string input = "// Just a comment line";
+        var input = TestPrefabs.CommentOnlyInput;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
 
@@ -86,9 +75,7 @@ public sealed class BlocksPrefabParserTests
     [Fact]
     public void Parse_WithNoPrefabs_ThrowsFormatException()
     {
-        var input = """
-            / Just a comment line
-            """;
+        var input = TestPrefabs.SingleSlashCommentInput;
 
         var exception = Assert.Throws<FormatException>(() => BlocksPrefabParser.Parse(input));
         Assert.Contains("No prefabs were found", exception.Message);
