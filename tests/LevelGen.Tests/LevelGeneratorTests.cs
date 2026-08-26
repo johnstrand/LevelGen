@@ -61,6 +61,70 @@ public class LevelGeneratorTests
         Assert.Throws<ArgumentOutOfRangeException>("MaxCorridorLength", () => LevelGenerator.Generate(prefabSet, options));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Generate_InvalidMinWidth_ThrowsArgumentOutOfRangeException(int minWidth)
+    {
+        var prefabSet = CreateValidPrefabSet();
+        var options = new GenerationOptions { MinWidth = minWidth };
+
+        Assert.Throws<ArgumentOutOfRangeException>("MinWidth", () => LevelGenerator.Generate(prefabSet, options));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Generate_InvalidMaxWidth_ThrowsArgumentOutOfRangeException(int maxWidth)
+    {
+        var prefabSet = CreateValidPrefabSet();
+        var options = new GenerationOptions { MaxWidth = maxWidth };
+
+        Assert.Throws<ArgumentOutOfRangeException>("MaxWidth", () => LevelGenerator.Generate(prefabSet, options));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Generate_InvalidMinHeight_ThrowsArgumentOutOfRangeException(int minHeight)
+    {
+        var prefabSet = CreateValidPrefabSet();
+        var options = new GenerationOptions { MinHeight = minHeight };
+
+        Assert.Throws<ArgumentOutOfRangeException>("MinHeight", () => LevelGenerator.Generate(prefabSet, options));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Generate_InvalidMaxHeight_ThrowsArgumentOutOfRangeException(int maxHeight)
+    {
+        var prefabSet = CreateValidPrefabSet();
+        var options = new GenerationOptions { MaxHeight = maxHeight };
+
+        Assert.Throws<ArgumentOutOfRangeException>("MaxHeight", () => LevelGenerator.Generate(prefabSet, options));
+    }
+
+    [Fact]
+    public void Generate_MinWidthGreaterThanMaxWidth_ThrowsArgumentException()
+    {
+        var prefabSet = CreateValidPrefabSet();
+        var options = new GenerationOptions { MinWidth = 20, MaxWidth = 10 };
+
+        var ex = Assert.Throws<ArgumentException>("options", () => LevelGenerator.Generate(prefabSet, options));
+        Assert.Contains("MinWidth cannot be greater than MaxWidth.", ex.Message);
+    }
+
+    [Fact]
+    public void Generate_MinHeightGreaterThanMaxHeight_ThrowsArgumentException()
+    {
+        var prefabSet = CreateValidPrefabSet();
+        var options = new GenerationOptions { MinHeight = 30, MaxHeight = 15 };
+
+        var ex = Assert.Throws<ArgumentException>("options", () => LevelGenerator.Generate(prefabSet, options));
+        Assert.Contains("MinHeight cannot be greater than MaxHeight.", ex.Message);
+    }
+
     [Fact]
     public void Generate_NullOptions_UsesDefaultOptionsAndSucceeds()
     {

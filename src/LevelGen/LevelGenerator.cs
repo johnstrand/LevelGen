@@ -39,5 +39,35 @@ public static class LevelGenerator
         {
             throw new ArgumentOutOfRangeException(nameof(options.MaxCorridorLength), "MaxCorridorLength must be greater than 0.");
         }
+
+        if (options.MinWidth is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options.MinWidth), "MinWidth must be greater than 0 when specified.");
+        }
+
+        if (options.MaxWidth is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxWidth), "MaxWidth must be greater than 0 when specified.");
+        }
+
+        if (options.MinHeight is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options.MinHeight), "MinHeight must be greater than 0 when specified.");
+        }
+
+        if (options.MaxHeight is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxHeight), "MaxHeight must be greater than 0 when specified.");
+        }
+
+        if (options.MinWidth.HasValue && options.MaxWidth.HasValue && options.MinWidth > options.MaxWidth)
+        {
+            throw new ArgumentException("MinWidth cannot be greater than MaxWidth.", nameof(options));
+        }
+
+        if (options.MinHeight.HasValue && options.MaxHeight.HasValue && options.MinHeight > options.MaxHeight)
+        {
+            throw new ArgumentException("MinHeight cannot be greater than MaxHeight.", nameof(options));
+        }
     }
 }
