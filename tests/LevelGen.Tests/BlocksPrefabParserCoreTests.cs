@@ -12,13 +12,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_ValidSinglePrefab_ParsesCorrectly()
     {
         // Arrange
-        var input = """
-            // This is a comment
-            > Room1
-            ###
-            #.#
-            ###
-            """;
+        var input = TestPrefabs.SinglePrefabWithComment;
 
         // Act
         var prefabSet = BlocksPrefabParserCore.Parse(input);
@@ -47,10 +41,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_AllTileKindsAndDoodads_ParsesCorrectly()
     {
         // Arrange
-        var input = """
-            > AllTokens
-            #.* ?A P
-            """;
+        var input = TestPrefabs.AllTokensAndDoodadsRoom;
 
         // Act
         var prefabSet = BlocksPrefabParserCore.Parse(input);
@@ -88,12 +79,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_UnevenRowLengths_PadsWithEmptyTiles()
     {
         // Arrange
-        var input = """
-            > Uneven
-            ###
-            #
-            #####
-            """;
+        var input = TestPrefabs.UnevenRowsRoom;
 
         // Act
         var prefabSet = BlocksPrefabParserCore.Parse(input);
@@ -119,16 +105,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_MultiplePrefabs_ParsesAll()
     {
         // Arrange
-        var input = """
-            // First prefab
-            > First
-            ..
-
-            // Second prefab separated by empty line
-            > Second
-            ##
-            ##
-            """;
+        var input = TestPrefabs.MultiplePrefabsWithComments;
 
         // Act
         var prefabSet = BlocksPrefabParserCore.Parse(input);
@@ -149,7 +126,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_CarriageReturnsInInput_HandledCorrectly()
     {
         // Arrange
-        var input = "> CRTest\r\n#.\r\n.#\r\n";
+        var input = TestPrefabs.CarriageReturnRoom;
 
         // Act
         var prefabSet = BlocksPrefabParserCore.Parse(input);
@@ -164,11 +141,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_TilesBeforeHeader_ThrowsFormatException()
     {
         // Arrange
-        var input = """
-            ###
-            > Header
-            ###
-            """;
+        var input = TestPrefabs.TilesBeforeHeader;
 
         // Act & Assert
         var ex = Assert.Throws<FormatException>(() => BlocksPrefabParserCore.Parse(input));
@@ -190,10 +163,7 @@ public class BlocksPrefabParserCoreTests
     public void Parse_UnsupportedToken_ThrowsFormatException()
     {
         // Arrange
-        var input = """
-            > Invalid
-            #+#
-            """;
+        var input = TestPrefabs.UnsupportedTileToken;
 
         // Act & Assert
         var ex = Assert.Throws<FormatException>(() => BlocksPrefabParserCore.Parse(input));
