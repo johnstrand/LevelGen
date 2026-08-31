@@ -72,4 +72,17 @@ public class LevelMapTests
         var map = new LevelMap(new TileKind[6], 3, 2);
         Assert.Throws<ArgumentOutOfRangeException>(() => _ = map[x, y]);
     }
+
+    [Fact]
+    public void AsLinearTiles_ReturnsExpectedSequence()
+    {
+        var tiles = new[]
+        {
+            TileKind.Empty, TileKind.Floor, TileKind.Wall,
+            TileKind.Connector, TileKind.Empty, TileKind.Floor
+        };
+        var map = new LevelMap(tiles, 3, 2);
+
+        Assert.Equal(tiles, map.AsLinearTiles());
+    }
 }
