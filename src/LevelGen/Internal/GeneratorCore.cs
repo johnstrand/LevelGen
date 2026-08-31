@@ -161,7 +161,7 @@ internal static class GeneratorCore
         OpenConnector selectedConnector,
         List<CandidatePlacement> roomCandidates)
     {
-        var corridorCandidates = Array.Empty<CandidatePlacement>();
+        var orderedCandidates = new List<CandidatePlacement>(roomCandidates);
 
         var roomCandidateCount = roomCandidates.Count;
         var canUseCorridors =
@@ -172,12 +172,11 @@ internal static class GeneratorCore
 
         if (canUseCorridors)
         {
-            corridorCandidates = [.. BuildCandidates(context, state, selectedConnector, context.CorridorVariants, isCorridor: true)];
+            var corridorBuffer = new List<CandidatePlacement>();
+            BuildCandidates(context, state, selectedConnector, context.CorridorVariants, isCorridor: true, corridorBuffer);
+            orderedCandidates.AddRange(corridorBuffer);
         }
 
-        var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
-        orderedCandidates.AddRange(roomCandidates);
-        orderedCandidates.AddRange(corridorCandidates);
         ShuffleInPlace(orderedCandidates, context.Random);
 
         return orderedCandidates;
@@ -193,21 +192,24 @@ internal static class GeneratorCore
         bestConnector = default;
         bestRoomCandidates = null;
         var bestScore = int.MaxValue;
+        var roomBuffer = new List<CandidatePlacement>();
+        var corridorBuffer = new List<CandidatePlacement>();
 
         foreach (var connector in state.OpenConnectors.Values)
         {
-            var roomCandidates = BuildCandidates(context, state, connector, context.RoomVariants, isCorridor: false);
-            var score = roomCandidates.Count;
+            BuildCandidates(context, state, connector, context.RoomVariants, isCorridor: false, roomBuffer);
+            var score = roomBuffer.Count;
             if (score == 0 && context.Options.AllowGeneratedCorridors)
             {
-                score = BuildCandidates(context, state, connector, context.CorridorVariants, isCorridor: false).Count;
+                BuildCandidates(context, state, connector, context.CorridorVariants, isCorridor: false, corridorBuffer);
+                score = corridorBuffer.Count;
             }
 
             if (score < bestScore)
             {
                 bestScore = score;
                 bestConnector = connector;
-                bestRoomCandidates = roomCandidates;
+                bestRoomCandidates = new List<CandidatePlacement>(roomBuffer);
                 found = true;
             }
         }
@@ -215,14 +217,15 @@ internal static class GeneratorCore
         return found;
     }
 
-    private static List<CandidatePlacement> BuildCandidates(
+    private static void BuildCandidates(
         GeneratorContext context,
         LayoutState state,
         OpenConnector openConnector,
         IReadOnlyList<PrefabVariant> variants,
-        bool isCorridor)
+        bool isCorridor,
+        List<CandidatePlacement> targetBuffer)
     {
-        var candidates = new List<CandidatePlacement>();
+        targetBuffer.Clear();
         foreach (var variant in variants)
         {
             foreach (var connection in variant.Connections)
@@ -235,29 +238,29 @@ internal static class GeneratorCore
                 var origin = openConnector.Position + openConnector.Facing.Offset() - connection.Position;
                 if (TryValidatePlacement(context, state, variant, origin, openConnector, out var candidate))
                 {
-                    candidates.Add(candidate with { IsCorridor = isCorridor });
+                    targetBuffer.Add(candidate with { IsCorridor = isCorridor });
                 }
             }
         }
 
-        if ((context.Options.MaxWidth.HasValue || context.Options.MaxHeight.HasValue) && candidates.Count > 1)
+        if ((context.Options.MaxWidth.HasValue || context.Options.MaxHeight.HasValue) && targetBuffer.Count > 1)
         {
-            var fittingCandidates = new List<CandidatePlacement>();
-            foreach (var candidate in candidates)
+            var anyFits = false;
+            for (int i = 0; i < targetBuffer.Count; i++)
             {
+                var candidate = targetBuffer[i];
                 if (PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, context.Options.MaxWidth, context.Options.MaxHeight))
                 {
-                    fittingCandidates.Add(candidate);
+                    anyFits = true;
+                    break;
                 }
             }
 
-            if (fittingCandidates.Count > 0)
+            if (anyFits)
             {
-                return fittingCandidates;
+                targetBuffer.RemoveAll(candidate => !PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, context.Options.MaxWidth, context.Options.MaxHeight));
             }
         }
-
-        return candidates;
     }
 
     private static bool PlacementFitsMaxBounds(
