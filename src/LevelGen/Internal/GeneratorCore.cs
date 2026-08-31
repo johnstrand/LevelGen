@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace LevelGen.Internal;
 
@@ -175,9 +176,17 @@ internal static class GeneratorCore
             corridorCandidates = [.. BuildCandidates(context, state, selectedConnector, context.CorridorVariants, isCorridor: true)];
         }
 
-        var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
-        orderedCandidates.AddRange(roomCandidates);
-        orderedCandidates.AddRange(corridorCandidates);
+        var totalCount = roomCandidates.Count + corridorCandidates.Length;
+        var orderedCandidates = new List<CandidatePlacement>(totalCount);
+        CollectionsMarshal.SetCount(orderedCandidates, totalCount);
+
+        var targetSpan = CollectionsMarshal.AsSpan(orderedCandidates);
+        CollectionsMarshal.AsSpan(roomCandidates).CopyTo(targetSpan);
+        if (corridorCandidates.Length > 0)
+        {
+            corridorCandidates.AsSpan().CopyTo(targetSpan[roomCandidates.Count..]);
+        }
+
         ShuffleInPlace(orderedCandidates, context.Random);
 
         return orderedCandidates;
