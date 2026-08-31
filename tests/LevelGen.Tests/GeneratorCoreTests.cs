@@ -55,4 +55,15 @@ public class GeneratorCoreTests
         Assert.Equal(1, result.Map.Width);
         Assert.Equal(1, result.Map.Height);
     }
+
+    [Fact]
+    public void Generate_WhenPrefabSetProducesNoVariants_ThrowsInvalidOperationException()
+    {
+        var emptyPrefabSet = new PrefabSet([]);
+        var options = new GenerationOptions();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => GeneratorCore.Generate(emptyPrefabSet, options));
+
+        Assert.Equal("The prefab set did not produce any usable variants.", exception.Message);
+    }
 }
