@@ -1,27 +1,39 @@
 namespace LevelGen;
 
-public sealed class PrefabVariant(
-    PrefabDefinition source,
-    PrefabTransform transform,
-    int width,
-    int height,
-    IEnumerable<TileKind> tiles,
-    IEnumerable<PrefabConnectionPoint> connections,
-    IEnumerable<PrefabDoodad> doodads)
+public sealed class PrefabVariant
 {
-    public PrefabDefinition Source { get; } = source ?? throw new ArgumentNullException(nameof(source));
+    public PrefabVariant(
+        PrefabDefinition source,
+        PrefabTransform transform,
+        int width,
+        int height,
+        IEnumerable<TileKind> tiles,
+        IEnumerable<PrefabConnectionPoint> connections,
+        IEnumerable<PrefabDoodad> doodads)
+    {
+        Source = source ?? throw new ArgumentNullException(nameof(source));
+        Transform = transform;
+        Width = width;
+        Height = height;
+        Tiles = tiles?.ToArray() ?? throw new ArgumentNullException(nameof(tiles));
+        Connections = connections?.ToArray() ?? throw new ArgumentNullException(nameof(connections));
+        LocalConnections = Connections.ToDictionary(connection => connection.Position);
+        Doodads = doodads?.ToArray() ?? throw new ArgumentNullException(nameof(doodads));
+    }
 
-    public PrefabTransform Transform { get; } = transform;
+    public PrefabDefinition Source { get; }
 
-    public int Width { get; } = width;
+    public PrefabTransform Transform { get; }
 
-    public int Height { get; } = height;
+    public int Width { get; }
 
-    public IReadOnlyList<TileKind> Tiles { get; } = tiles?.ToArray() ?? throw new ArgumentNullException(nameof(tiles));
+    public int Height { get; }
 
-    public IReadOnlyList<PrefabConnectionPoint> Connections { get; } = connections?.ToArray() ?? throw new ArgumentNullException(nameof(connections));
+    public IReadOnlyList<TileKind> Tiles { get; }
 
-    internal IReadOnlyDictionary<Point2, PrefabConnectionPoint> LocalConnections { get; } = connections?.ToDictionary(connection => connection.Position) ?? throw new ArgumentNullException(nameof(connections));
+    public IReadOnlyList<PrefabConnectionPoint> Connections { get; }
 
-    public IReadOnlyList<PrefabDoodad> Doodads { get; } = doodads?.ToArray() ?? throw new ArgumentNullException(nameof(doodads));
+    internal IReadOnlyDictionary<Point2, PrefabConnectionPoint> LocalConnections { get; }
+
+    public IReadOnlyList<PrefabDoodad> Doodads { get; }
 }
