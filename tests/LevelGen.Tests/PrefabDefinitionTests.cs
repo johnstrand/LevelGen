@@ -136,4 +136,16 @@ public sealed class PrefabDefinitionTests
         Assert.Equal(new Point2(1, 1), definition.Doodads[0].Position);
         Assert.Equal('x', definition.Doodads[0].Marker);
     }
+
+    [Fact]
+    public void AsLinearTiles_ReturnsTilesInSequence()
+    {
+        var tiles = new[] { TileKind.Wall, TileKind.Floor, TileKind.Floor, TileKind.Wall };
+        var definition = new PrefabDefinition("Test", 2, 2, tiles);
+
+        var result = definition.AsLinearTiles();
+
+        Assert.Equal(tiles.Length, result.Count);
+        Assert.Equal(tiles, result);
+    }
 }

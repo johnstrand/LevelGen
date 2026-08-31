@@ -151,6 +151,126 @@ public sealed class PrefabVariantFactoryTests
     }
 
     [Fact]
+    public void TryInferConnectorFacing_NoOutwardCandidates_ReturnsFalseAndDefaultFacing()
+    {
+        // 3x3 room with connector in center (1, 1), surrounded by Wall tiles on all 4 sides.
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Wall,      TileKind.Wall,
+            TileKind.Wall, TileKind.Connector, TileKind.Wall,
+            TileKind.Wall, TileKind.Wall,      TileKind.Wall,
+        };
+        var prefab = new PrefabDefinition("NoOutward", 3, 3, tiles);
+
+        var result = PrefabVariantFactory.TryInferConnectorFacing(prefab, 1, 1, out var facing);
+
+        Assert.False(result);
+        Assert.Equal(default(Direction), facing);
+    }
+
+    [Theory]
+    [InlineData(1, 0, Direction.North)]
+    [InlineData(1, 2, Direction.South)]
+    [InlineData(2, 1, Direction.East)]
+    [InlineData(0, 1, Direction.West)]
+    public void TryInferConnectorFacing_SingleOutwardCandidate_ReturnsTrueAndCorrectFacing(int x, int y, Direction expectedFacing)
+    {
+        // 3x3 prefab with walls everywhere, except connector at specified position facing out of bounds.
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Connector, TileKind.Wall,
+            TileKind.Connector, TileKind.Floor, TileKind.Connector,
+            TileKind.Wall, TileKind.Connector, TileKind.Wall,
+        };
+        // Replace non-target connectors with walls to ensure target connector has exactly one outward candidate
+        for (var i = 0; i < tiles.Length; i++)
+        {
+            var tx = i % 3;
+            var ty = i / 3;
+            if (tx == x && ty == y)
+            {
+                tiles[i] = TileKind.Connector;
+            }
+            else
+            {
+                tiles[i] = TileKind.Wall;
+            }
+        }
+        var prefab = new PrefabDefinition("SingleOutwardBoundary", 3, 3, tiles);
+
+        var result = PrefabVariantFactory.TryInferConnectorFacing(prefab, x, y, out var facing);
+
+        Assert.True(result);
+        Assert.Equal(expectedFacing, facing);
+    }
+
+    [Fact]
+    public void TryInferConnectorFacing_SingleOutwardCandidate_AdjacentEmptyTile_ReturnsTrueAndCorrectFacing()
+    {
+        // 3x3 room with connector at center (1, 1). Surrounding tiles are Wall except East (2, 1) which is Empty.
+        var tiles = new[]
+        {
+            TileKind.Wall, TileKind.Wall,      TileKind.Wall,
+            TileKind.Wall, TileKind.Connector, TileKind.Empty,
+            TileKind.Wall, TileKind.Wall,      TileKind.Wall,
+        };
+        var prefab = new PrefabDefinition("SingleOutwardEmpty", 3, 3, tiles);
+
+        var result = PrefabVariantFactory.TryInferConnectorFacing(prefab, 1, 1, out var facing);
+
+        Assert.True(result);
+        Assert.Equal(Direction.East, facing);
+    }
+
+    [Fact]
+    public void TryInferConnectorFacing_MultipleOutwardCandidates_SingleInwardCandidate_ReturnsTrueAndCorrectFacing()
+    {
+        // 2x2 with connector at corner (0, 0).
+        // Outward candidates: North and West (out of bounds).
+        // Opposite of North is South (0, 1) -> Floor (walkable).
+        // Opposite of West is East (1, 0) -> Wall (not walkable).
+        var tiles = new[]
+        {
+            TileKind.Connector, TileKind.Wall,
+            TileKind.Floor,     TileKind.Wall,
+        };
+        var prefab = new PrefabDefinition("MultipleOutwardSingleInward", 2, 2, tiles);
+
+        var result = PrefabVariantFactory.TryInferConnectorFacing(prefab, 0, 0, out var facing);
+
+        Assert.True(result);
+        Assert.Equal(Direction.North, facing);
+    }
+
+    [Fact]
+    public void TryInferConnectorFacing_MultipleOutwardCandidates_ZeroInwardCandidates_ThrowsInvalidOperationException()
+    {
+        var tiles = new[] { TileKind.Connector };
+        var prefab = new PrefabDefinition("ZeroInward", 1, 1, tiles);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            PrefabVariantFactory.TryInferConnectorFacing(prefab, 0, 0, out _));
+
+        Assert.Equal("Connector at (0, 0) in prefab 'ZeroInward' must expose exactly one outward-facing side.", exception.Message);
+    }
+
+    [Fact]
+    public void TryInferConnectorFacing_MultipleOutwardCandidates_MultipleInwardCandidates_ThrowsInvalidOperationException()
+    {
+        var tiles = new[]
+        {
+            TileKind.Connector, TileKind.Floor,
+            TileKind.Floor,     TileKind.Empty
+        };
+        var prefab = new PrefabDefinition("MultipleInward", 2, 2, tiles);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            PrefabVariantFactory.TryInferConnectorFacing(prefab, 0, 0, out _));
+
+        Assert.Equal("Connector at (0, 0) in prefab 'MultipleInward' must expose exactly one outward-facing side.", exception.Message);
+    }
+
+    [Fact]
     public void ExtractConnections_NullPrefab_ThrowsArgumentNullException()
     {
         var exception = Assert.Throws<ArgumentNullException>(() => PrefabVariantFactory.ExtractConnections(null!));
