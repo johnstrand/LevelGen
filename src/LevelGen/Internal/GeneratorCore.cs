@@ -373,6 +373,8 @@ internal static class GeneratorCore
                 var worldPosition = origin + new Point2(x, y);
                 if (state.OccupiedTiles.ContainsKey(worldPosition))
                 {
+                    linkedExisting.Clear();
+                    linkedCandidate.Clear();
                     return false;
                 }
 
@@ -391,6 +393,8 @@ internal static class GeneratorCore
                         localConnection.Facing != direction ||
                         existingConnection.Facing != direction.Opposite())
                     {
+                        linkedExisting.Clear();
+                        linkedCandidate.Clear();
                         return false;
                     }
 
