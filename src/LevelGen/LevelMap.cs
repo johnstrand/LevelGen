@@ -30,7 +30,7 @@ public sealed class LevelMap
     {
         get
         {
-            return !Contains(x, y) ? throw new ArgumentOutOfRangeException($"({x}, {y})") : _tiles[(y * Width) + x];
+            return !Contains(x, y) ? throw new ArgumentOutOfRangeException(nameof(x), $"({x}, {y}) is out of range.") : _tiles[(y * Width) + x];
         }
     }
 
