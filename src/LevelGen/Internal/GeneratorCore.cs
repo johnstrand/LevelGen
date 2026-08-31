@@ -4,7 +4,8 @@ namespace LevelGen.Internal;
 
 internal static class GeneratorCore
 {
-
+    private const int MaxGenerationAttempts = 12;
+    private const int MaxExpansionDepth = 128;
     public static GenerationResult Generate(PrefabSet prefabSet, GenerationOptions options)
     {
         ArgumentNullException.ThrowIfNull(prefabSet);
@@ -25,6 +26,7 @@ internal static class GeneratorCore
                 .ToArray()
             : [];
 
+        // TODO: TargetWalkableTileCount is not yet wired into generation; currently only MaxPrefabCount drives the room count.
         var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
         var random = new Random(options.Seed);
         var context = new GeneratorContext(roomVariants, corridorVariants, targetRoomPlacements, options, random);
@@ -32,7 +34,7 @@ internal static class GeneratorCore
         GenerationResult? bestResult = null;
         int minDeviation = int.MaxValue;
 
-        for (var attempt = 0; attempt < 12; attempt++)
+        for (var attempt = 0; attempt < MaxGenerationAttempts; attempt++)
         {
             var seed = context.RoomVariants[context.Random.Next(context.RoomVariants.Count)];
             var state = new LayoutState();
@@ -94,7 +96,7 @@ internal static class GeneratorCore
         int depth,
         out GenerationResult result)
     {
-        if (depth > 128)
+        if (depth > MaxExpansionDepth)
         {
             result = GenerationResult.Empty;
             return false;
