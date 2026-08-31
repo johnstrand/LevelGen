@@ -513,4 +513,14 @@ public sealed class PrefabVariantFactoryTests
         // Center tile at index 4 (1, 1) should be replaced with TileKind.Floor
         Assert.Equal(TileKind.Floor, variant.Tiles[(1 * variant.Width) + 1]);
     }
+
+    [Fact]
+    public void CreateVariants_InvalidTileKind_ThrowsArgumentOutOfRangeException()
+    {
+        var tiles = new[] { (TileKind)999 };
+        var prefab = new PrefabDefinition("InvalidTileKindRoom", 1, 1, tiles);
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => PrefabVariantFactory.CreateVariants(prefab, allowMirror: false));
+        Assert.Equal("tileKind", exception.ParamName);
+    }
 }
