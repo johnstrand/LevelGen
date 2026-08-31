@@ -270,18 +270,10 @@ internal static class GeneratorCore
         int? maxWidth,
         int? maxHeight)
     {
-        var minX = int.MaxValue;
-        var minY = int.MaxValue;
-        var maxX = int.MinValue;
-        var maxY = int.MinValue;
-
-        foreach (var point in state.OccupiedTiles.Keys)
-        {
-            if (point.X < minX) minX = point.X;
-            if (point.Y < minY) minY = point.Y;
-            if (point.X > maxX) maxX = point.X;
-            if (point.Y > maxY) maxY = point.Y;
-        }
+        var minX = state.MinX;
+        var minY = state.MinY;
+        var maxX = state.MaxX;
+        var maxY = state.MaxY;
 
         for (var y = 0; y < variant.Height; y++)
         {
@@ -453,7 +445,12 @@ internal static class GeneratorCore
                     continue;
                 }
 
-                state.OccupiedTiles[origin + new Point2(x, y)] = tile;
+                var worldPos = origin + new Point2(x, y);
+                state.OccupiedTiles[worldPos] = tile;
+                if (worldPos.X < state.MinX) state.MinX = worldPos.X;
+                if (worldPos.Y < state.MinY) state.MinY = worldPos.Y;
+                if (worldPos.X > state.MaxX) state.MaxX = worldPos.X;
+                if (worldPos.Y > state.MaxY) state.MaxY = worldPos.Y;
             }
         }
 
@@ -534,22 +531,9 @@ internal static class GeneratorCore
             return (0, 0, 0, 0);
         }
 
-        var minX = int.MaxValue;
-        var minY = int.MaxValue;
-        var maxX = int.MinValue;
-        var maxY = int.MinValue;
-
-        foreach (var point in state.OccupiedTiles.Keys)
-        {
-            if (point.X < minX) minX = point.X;
-            if (point.Y < minY) minY = point.Y;
-            if (point.X > maxX) maxX = point.X;
-            if (point.Y > maxY) maxY = point.Y;
-        }
-
-        var width = maxX - minX + 1;
-        var height = maxY - minY + 1;
-        return (minX, minY, width, height);
+        var width = state.MaxX - state.MinX + 1;
+        var height = state.MaxY - state.MinY + 1;
+        return (state.MinX, state.MinY, width, height);
     }
 
     private static (int MinX, int MinY, int Width, int Height) CalculateBounds(Dictionary<Point2, TileKind> finalized)
@@ -661,6 +645,14 @@ internal static class GeneratorCore
 
         public int CorridorPlacementCount { get; set; }
 
+        public int MinX { get; set; } = int.MaxValue;
+
+        public int MinY { get; set; } = int.MaxValue;
+
+        public int MaxX { get; set; } = int.MinValue;
+
+        public int MaxY { get; set; } = int.MinValue;
+
         public LayoutState()
         {
             OccupiedTiles = [];
@@ -677,6 +669,10 @@ internal static class GeneratorCore
             Placements = new(other.Placements);
             RoomPlacementCount = other.RoomPlacementCount;
             CorridorPlacementCount = other.CorridorPlacementCount;
+            MinX = other.MinX;
+            MinY = other.MinY;
+            MaxX = other.MaxX;
+            MaxY = other.MaxY;
         }
 
         public LayoutState Clone()
