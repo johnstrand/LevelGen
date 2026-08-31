@@ -644,7 +644,7 @@ internal static class GeneratorCore
         }
     }
 
-    private sealed class LayoutState
+    internal sealed class LayoutState
     {
         public Dictionary<Point2, TileKind> OccupiedTiles { get; }
 
@@ -682,9 +682,9 @@ internal static class GeneratorCore
         }
     }
 
-    private readonly record struct OpenConnector(Point2 Position, Direction Facing);
+    internal readonly record struct OpenConnector(Point2 Position, Direction Facing);
 
-    private readonly record struct Placement(PrefabVariant Variant, Point2 Origin, bool IsCorridor);
+    internal readonly record struct Placement(PrefabVariant Variant, Point2 Origin, bool IsCorridor);
 
     private readonly record struct CandidatePlacement(
         PrefabVariant Variant,
