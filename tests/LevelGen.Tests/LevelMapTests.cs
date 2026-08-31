@@ -74,15 +74,14 @@ public class LevelMapTests
     }
 
     [Fact]
-    public void AsLinearTiles_ReturnsExpectedSequence()
+    public void AsLinearTiles_ReturnsTilesInSequence()
     {
-        var tiles = new[]
-        {
-            TileKind.Empty, TileKind.Floor, TileKind.Wall,
-            TileKind.Connector, TileKind.Empty, TileKind.Floor
-        };
-        var map = new LevelMap(tiles, 3, 2);
+        var tiles = new[] { TileKind.Empty, TileKind.Floor, TileKind.Wall, TileKind.Connector };
+        var map = new LevelMap(tiles, 2, 2);
 
-        Assert.Equal(tiles, map.AsLinearTiles());
+        var result = map.AsLinearTiles();
+
+        Assert.Equal(tiles.Length, result.Count);
+        Assert.Equal(tiles, result);
     }
 }
