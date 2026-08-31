@@ -10,6 +10,7 @@ namespace LevelGen.Benchmarks
     {
         private PrefabSet? _prefabSet;
         private GenerationOptions? _options;
+        private GenerationOptions? _boundedOptions;
 
         [GlobalSetup]
         public void Setup()
@@ -31,12 +32,30 @@ namespace LevelGen.Benchmarks
                 AllowLoops = true,
                 MaxCorridorLength = 3
             };
+
+            _boundedOptions = new GenerationOptions
+            {
+                Seed = 42,
+                MaxPrefabCount = 10,
+                AllowMirrorTransforms = true,
+                AllowGeneratedCorridors = true,
+                AllowLoops = true,
+                MaxCorridorLength = 3,
+                MaxWidth = 15,
+                MaxHeight = 15
+            };
         }
 
         [Benchmark]
         public GenerationResult GenerateLevel()
         {
             return LevelGenerator.Generate(_prefabSet!, _options!);
+        }
+
+        [Benchmark]
+        public GenerationResult GenerateLevelBounded()
+        {
+            return LevelGenerator.Generate(_prefabSet!, _boundedOptions!);
         }
     }
 }

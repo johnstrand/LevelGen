@@ -17,9 +17,7 @@ public sealed class PlaygroundSettingsTests
     [Fact]
     public void Parse_ReturnsDefaultValues_WhenArgsAreEmpty()
     {
-        string[] args = [];
-
-        var settings = PlaygroundSettings.Parse(args);
+        var settings = PlaygroundSettings.Parse([]);
 
         Assert.Null(settings.Seed);
         Assert.Null(settings.BlocksPath);
