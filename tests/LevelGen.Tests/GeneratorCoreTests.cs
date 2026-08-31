@@ -11,7 +11,7 @@ public class GeneratorCoreTests
     public void AllDirections_ContainsAllDirections()
     {
         // Assert
-        Assert.Equal(Enum.GetValues<Direction>(), GeneratorCore.AllDirections);
+        Assert.Equal(Enum.GetValues<Direction>(), DirectionExtensions.AllDirections);
     }
 
     [Fact]
