@@ -57,6 +57,17 @@ public class GeneratorCoreTests
     }
 
     [Fact]
+    public void Generate_WhenPrefabSetProducesNoVariants_ThrowsInvalidOperationException()
+    {
+        var emptyPrefabSet = new PrefabSet([]);
+        var options = new GenerationOptions();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => GeneratorCore.Generate(emptyPrefabSet, options));
+
+        Assert.Equal("The prefab set did not produce any usable variants.", exception.Message);
+    }
+
+    [Fact]
     public void LayoutState_Clone_CreatesExactCopyOfAllFields()
     {
         var prefabSet = BlocksPrefabParser.Parse(TestPrefabs.Standard3x3Room);
