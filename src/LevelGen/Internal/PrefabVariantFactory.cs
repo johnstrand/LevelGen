@@ -114,39 +114,58 @@ internal static class PrefabVariantFactory
 
     public static bool TryInferConnectorFacing(PrefabDefinition prefab, int x, int y, out Direction facing)
     {
-        var outwardCandidates = DirectionExtensions.AllDirections
-            .Where(direction => IsOutward(prefab, x, y, direction))
-            .ToArray();
+        int outwardCount = 0;
+        Direction lastOutward = default;
 
-        if (outwardCandidates.Length == 0)
+        foreach (var direction in DirectionExtensions.AllDirections)
+        {
+            if (IsOutward(prefab, x, y, direction))
+            {
+                outwardCount++;
+                lastOutward = direction;
+            }
+        }
+
+        if (outwardCount == 0)
         {
             facing = default;
             return false;
         }
 
-        if (outwardCandidates.Length == 1)
+        if (outwardCount == 1)
         {
-            facing = outwardCandidates[0];
+            facing = lastOutward;
             return true;
         }
 
-        var inwardCandidates = outwardCandidates
-            .Where(direction =>
-            {
-                var opposite = direction.Opposite().Offset();
-                var oppositeX = x + opposite.X;
-                var oppositeY = y + opposite.Y;
-                return oppositeX >= 0 &&
-                    oppositeX < prefab.Width &&
-                    oppositeY >= 0 &&
-                    oppositeY < prefab.Height &&
-                    prefab[oppositeX, oppositeY].IsWalkable();
-            })
-            .ToArray();
+        int inwardCount = 0;
+        Direction lastInward = default;
 
-        if (inwardCandidates.Length == 1)
+        foreach (var direction in DirectionExtensions.AllDirections)
         {
-            facing = inwardCandidates[0];
+            if (!IsOutward(prefab, x, y, direction))
+            {
+                continue;
+            }
+
+            var opposite = direction.Opposite().Offset();
+            var oppositeX = x + opposite.X;
+            var oppositeY = y + opposite.Y;
+
+            if (oppositeX >= 0 &&
+                oppositeX < prefab.Width &&
+                oppositeY >= 0 &&
+                oppositeY < prefab.Height &&
+                prefab[oppositeX, oppositeY].IsWalkable())
+            {
+                inwardCount++;
+                lastInward = direction;
+            }
+        }
+
+        if (inwardCount == 1)
+        {
+            facing = lastInward;
             return true;
         }
 
