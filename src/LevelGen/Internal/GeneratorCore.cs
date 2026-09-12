@@ -315,8 +315,10 @@ internal static class GeneratorCore
         OpenConnector requiredConnection,
         out CandidatePlacement candidate)
     {
-        var linkedExisting = new HashSet<Point2>();
-        var linkedCandidate = new HashSet<Point2>();
+        var linkedExisting = context.ScratchLinkedExisting;
+        var linkedCandidate = context.ScratchLinkedCandidate;
+        linkedExisting.Clear();
+        linkedCandidate.Clear();
 
         if (!TryValidateTilesAndConnections(state, variant, origin, linkedExisting, linkedCandidate))
         {
@@ -346,8 +348,8 @@ internal static class GeneratorCore
             variant,
             origin,
             false,
-            linkedExisting,
-            linkedCandidate);
+            [.. linkedExisting],
+            [.. linkedCandidate]);
 
         return true;
     }
