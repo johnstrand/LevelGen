@@ -31,7 +31,7 @@ internal static class PrefabVariantFactory
         ArgumentNullException.ThrowIfNull(prefab);
 
         var connections = ExtractConnections(prefab);
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var seen = new HashSet<PrefabVariant>(PrefabVariantEqualityComparer.Instance);
         var variants = new List<PrefabVariant>();
         ReadOnlySpan<bool> mirrorStates = allowMirror ? [false, true] : [false];
 
@@ -55,7 +55,7 @@ internal static class PrefabVariantFactory
                     transformedConnections,
                     transformedDoodads);
 
-                if (seen.Add(CreateVariantKey(variant)))
+                if (seen.Add(variant))
                 {
                     variants.Add(variant);
                 }
@@ -166,26 +166,6 @@ internal static class PrefabVariantFactory
             prefab[neighborX, neighborY] == TileKind.Empty;
     }
 
-    private static string CreateVariantKey(PrefabVariant variant)
-    {
-        var tileKey = new string([.. variant.Tiles.Select(ToToken)]);
-        var connectionKey = string.Join(
-            ";",
-            variant.Connections.Select(connection =>
-                $"{connection.Position.X},{connection.Position.Y},{(int)connection.Facing}"));
-
-        return $"{variant.Width}x{variant.Height}|{tileKey}|{connectionKey}";
-    }
-
-    private static char ToToken(TileKind tileKind) =>
-        tileKind switch
-        {
-            TileKind.Empty => ' ',
-            TileKind.Wall => '#',
-            TileKind.Floor => '.',
-            TileKind.Connector => '*',
-            _ => throw new ArgumentOutOfRangeException(nameof(tileKind)),
-        };
 
     public static (int Width, int Height) GetTransformedSize(int width, int height, PrefabTransform transform) =>
         transform.QuarterTurnsClockwise % 2 == 0 ? (width, height) : (height, width);
