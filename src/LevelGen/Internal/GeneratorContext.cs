@@ -5,4 +5,8 @@ internal sealed record GeneratorContext(
     IReadOnlyList<PrefabVariant> CorridorVariants,
     int TargetRoomPlacements,
     GenerationOptions Options,
-    Random Random);
+    Random Random)
+{
+    public HashSet<Point2> ScratchLinkedExisting { get; } = [];
+    public HashSet<Point2> ScratchLinkedCandidate { get; } = [];
+}
