@@ -4,8 +4,8 @@ namespace LevelGen.Internal;
 
 internal static class GeneratorCore
 {
-    internal static readonly Direction[] AllDirections = Enum.GetValues<Direction>();
-
+    private const int MaxGenerationAttempts = 12;
+    private const int MaxExpansionDepth = 128;
     public static GenerationResult Generate(PrefabSet prefabSet, GenerationOptions options)
     {
         ArgumentNullException.ThrowIfNull(prefabSet);
@@ -26,6 +26,7 @@ internal static class GeneratorCore
                 .ToArray()
             : [];
 
+        // TODO: TargetWalkableTileCount is not yet wired into generation; currently only MaxPrefabCount drives the room count.
         var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
         var random = new Random(options.Seed);
         var context = new GeneratorContext(roomVariants, corridorVariants, targetRoomPlacements, options, random);
@@ -33,7 +34,7 @@ internal static class GeneratorCore
         GenerationResult? bestResult = null;
         int minDeviation = int.MaxValue;
 
-        for (var attempt = 0; attempt < 12; attempt++)
+        for (var attempt = 0; attempt < MaxGenerationAttempts; attempt++)
         {
             var seed = context.RoomVariants[context.Random.Next(context.RoomVariants.Count)];
             var state = new LayoutState();
@@ -95,7 +96,7 @@ internal static class GeneratorCore
         int depth,
         out GenerationResult result)
     {
-        if (depth > 128)
+        if (depth > MaxExpansionDepth)
         {
             result = GenerationResult.Empty;
             return false;
@@ -161,7 +162,7 @@ internal static class GeneratorCore
         OpenConnector selectedConnector,
         List<CandidatePlacement> roomCandidates)
     {
-        var corridorCandidates = Array.Empty<CandidatePlacement>();
+        var orderedCandidates = new List<CandidatePlacement>(roomCandidates);
 
         var roomCandidateCount = roomCandidates.Count;
         var canUseCorridors =
@@ -172,12 +173,11 @@ internal static class GeneratorCore
 
         if (canUseCorridors)
         {
-            corridorCandidates = [.. BuildCandidates(context, state, selectedConnector, context.CorridorVariants, isCorridor: true)];
+            var corridorBuffer = new List<CandidatePlacement>();
+            BuildCandidates(context, state, selectedConnector, context.CorridorVariants, isCorridor: true, corridorBuffer);
+            orderedCandidates.AddRange(corridorBuffer);
         }
 
-        var orderedCandidates = new List<CandidatePlacement>(roomCandidates.Count + corridorCandidates.Length);
-        orderedCandidates.AddRange(roomCandidates);
-        orderedCandidates.AddRange(corridorCandidates);
         ShuffleInPlace(orderedCandidates, context.Random);
 
         return orderedCandidates;
@@ -193,21 +193,24 @@ internal static class GeneratorCore
         bestConnector = default;
         bestRoomCandidates = null;
         var bestScore = int.MaxValue;
+        var roomBuffer = new List<CandidatePlacement>();
+        var corridorBuffer = new List<CandidatePlacement>();
 
         foreach (var connector in state.OpenConnectors.Values)
         {
-            var roomCandidates = BuildCandidates(context, state, connector, context.RoomVariants, isCorridor: false);
-            var score = roomCandidates.Count;
+            BuildCandidates(context, state, connector, context.RoomVariants, isCorridor: false, roomBuffer);
+            var score = roomBuffer.Count;
             if (score == 0 && context.Options.AllowGeneratedCorridors)
             {
-                score = BuildCandidates(context, state, connector, context.CorridorVariants, isCorridor: false).Count;
+                BuildCandidates(context, state, connector, context.CorridorVariants, isCorridor: false, corridorBuffer);
+                score = corridorBuffer.Count;
             }
 
             if (score < bestScore)
             {
                 bestScore = score;
                 bestConnector = connector;
-                bestRoomCandidates = roomCandidates;
+                bestRoomCandidates = new List<CandidatePlacement>(roomBuffer);
                 found = true;
             }
         }
@@ -215,14 +218,15 @@ internal static class GeneratorCore
         return found;
     }
 
-    private static List<CandidatePlacement> BuildCandidates(
+    private static void BuildCandidates(
         GeneratorContext context,
         LayoutState state,
         OpenConnector openConnector,
         IReadOnlyList<PrefabVariant> variants,
-        bool isCorridor)
+        bool isCorridor,
+        List<CandidatePlacement> targetBuffer)
     {
-        var candidates = new List<CandidatePlacement>();
+        targetBuffer.Clear();
         foreach (var variant in variants)
         {
             foreach (var connection in variant.Connections)
@@ -235,29 +239,29 @@ internal static class GeneratorCore
                 var origin = openConnector.Position + openConnector.Facing.Offset() - connection.Position;
                 if (TryValidatePlacement(context, state, variant, origin, openConnector, out var candidate))
                 {
-                    candidates.Add(candidate with { IsCorridor = isCorridor });
+                    targetBuffer.Add(candidate with { IsCorridor = isCorridor });
                 }
             }
         }
 
-        if ((context.Options.MaxWidth.HasValue || context.Options.MaxHeight.HasValue) && candidates.Count > 1)
+        if ((context.Options.MaxWidth.HasValue || context.Options.MaxHeight.HasValue) && targetBuffer.Count > 1)
         {
-            var fittingCandidates = new List<CandidatePlacement>();
-            foreach (var candidate in candidates)
+            var anyFits = false;
+            for (int i = 0; i < targetBuffer.Count; i++)
             {
+                var candidate = targetBuffer[i];
                 if (PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, context.Options.MaxWidth, context.Options.MaxHeight))
                 {
-                    fittingCandidates.Add(candidate);
+                    anyFits = true;
+                    break;
                 }
             }
 
-            if (fittingCandidates.Count > 0)
+            if (anyFits)
             {
-                return fittingCandidates;
+                targetBuffer.RemoveAll(candidate => !PlacementFitsMaxBounds(state, candidate.Variant, candidate.Origin, context.Options.MaxWidth, context.Options.MaxHeight));
             }
         }
-
-        return candidates;
     }
 
     private static bool PlacementFitsMaxBounds(
@@ -267,18 +271,10 @@ internal static class GeneratorCore
         int? maxWidth,
         int? maxHeight)
     {
-        var minX = int.MaxValue;
-        var minY = int.MaxValue;
-        var maxX = int.MinValue;
-        var maxY = int.MinValue;
-
-        foreach (var point in state.OccupiedTiles.Keys)
-        {
-            if (point.X < minX) minX = point.X;
-            if (point.Y < minY) minY = point.Y;
-            if (point.X > maxX) maxX = point.X;
-            if (point.Y > maxY) maxY = point.Y;
-        }
+        var minX = state.MinX;
+        var minY = state.MinY;
+        var maxX = state.MaxX;
+        var maxY = state.MaxY;
 
         for (var y = 0; y < variant.Height; y++)
         {
@@ -319,8 +315,10 @@ internal static class GeneratorCore
         OpenConnector requiredConnection,
         out CandidatePlacement candidate)
     {
-        var linkedExisting = new HashSet<Point2>();
-        var linkedCandidate = new HashSet<Point2>();
+        var linkedExisting = context.ScratchLinkedExisting;
+        var linkedCandidate = context.ScratchLinkedCandidate;
+        linkedExisting.Clear();
+        linkedCandidate.Clear();
 
         if (!TryValidateTilesAndConnections(state, variant, origin, linkedExisting, linkedCandidate))
         {
@@ -350,8 +348,8 @@ internal static class GeneratorCore
             variant,
             origin,
             false,
-            linkedExisting,
-            linkedCandidate);
+            [.. linkedExisting],
+            [.. linkedCandidate]);
 
         return true;
     }
@@ -378,10 +376,12 @@ internal static class GeneratorCore
                 var worldPosition = origin + new Point2(x, y);
                 if (state.OccupiedTiles.ContainsKey(worldPosition))
                 {
+                    linkedExisting.Clear();
+                    linkedCandidate.Clear();
                     return false;
                 }
 
-                foreach (var direction in AllDirections)
+                foreach (var direction in DirectionExtensions.AllDirections)
                 {
                     var neighborPosition = worldPosition + direction.Offset();
                     if (!state.OccupiedTiles.TryGetValue(neighborPosition, out var existingTile) ||
@@ -396,6 +396,8 @@ internal static class GeneratorCore
                         localConnection.Facing != direction ||
                         existingConnection.Facing != direction.Opposite())
                     {
+                        linkedExisting.Clear();
+                        linkedCandidate.Clear();
                         return false;
                     }
 
@@ -450,7 +452,12 @@ internal static class GeneratorCore
                     continue;
                 }
 
-                state.OccupiedTiles[origin + new Point2(x, y)] = tile;
+                var worldPos = origin + new Point2(x, y);
+                state.OccupiedTiles[worldPos] = tile;
+                if (worldPos.X < state.MinX) state.MinX = worldPos.X;
+                if (worldPos.Y < state.MinY) state.MinY = worldPos.Y;
+                if (worldPos.X > state.MaxX) state.MaxX = worldPos.X;
+                if (worldPos.Y > state.MaxY) state.MaxY = worldPos.Y;
             }
         }
 
@@ -531,22 +538,9 @@ internal static class GeneratorCore
             return (0, 0, 0, 0);
         }
 
-        var minX = int.MaxValue;
-        var minY = int.MaxValue;
-        var maxX = int.MinValue;
-        var maxY = int.MinValue;
-
-        foreach (var point in state.OccupiedTiles.Keys)
-        {
-            if (point.X < minX) minX = point.X;
-            if (point.Y < minY) minY = point.Y;
-            if (point.X > maxX) maxX = point.X;
-            if (point.Y > maxY) maxY = point.Y;
-        }
-
-        var width = maxX - minX + 1;
-        var height = maxY - minY + 1;
-        return (minX, minY, width, height);
+        var width = state.MaxX - state.MinX + 1;
+        var height = state.MaxY - state.MinY + 1;
+        return (state.MinX, state.MinY, width, height);
     }
 
     private static (int MinX, int MinY, int Width, int Height) CalculateBounds(Dictionary<Point2, TileKind> finalized)
@@ -622,7 +616,7 @@ internal static class GeneratorCore
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            foreach (var direction in AllDirections)
+            foreach (var direction in DirectionExtensions.AllDirections)
             {
                 var next = current + direction.Offset();
                 if (walkable.Contains(next) && visited.Add(next))
@@ -644,7 +638,7 @@ internal static class GeneratorCore
         }
     }
 
-    private sealed class LayoutState
+    internal sealed class LayoutState
     {
         public Dictionary<Point2, TileKind> OccupiedTiles { get; }
 
@@ -657,6 +651,14 @@ internal static class GeneratorCore
         public int RoomPlacementCount { get; set; }
 
         public int CorridorPlacementCount { get; set; }
+
+        public int MinX { get; set; } = int.MaxValue;
+
+        public int MinY { get; set; } = int.MaxValue;
+
+        public int MaxX { get; set; } = int.MinValue;
+
+        public int MaxY { get; set; } = int.MinValue;
 
         public LayoutState()
         {
@@ -674,6 +676,10 @@ internal static class GeneratorCore
             Placements = new(other.Placements);
             RoomPlacementCount = other.RoomPlacementCount;
             CorridorPlacementCount = other.CorridorPlacementCount;
+            MinX = other.MinX;
+            MinY = other.MinY;
+            MaxX = other.MaxX;
+            MaxY = other.MaxY;
         }
 
         public LayoutState Clone()
@@ -682,9 +688,9 @@ internal static class GeneratorCore
         }
     }
 
-    private readonly record struct OpenConnector(Point2 Position, Direction Facing);
+    internal readonly record struct OpenConnector(Point2 Position, Direction Facing);
 
-    private readonly record struct Placement(PrefabVariant Variant, Point2 Origin, bool IsCorridor);
+    internal readonly record struct Placement(PrefabVariant Variant, Point2 Origin, bool IsCorridor);
 
     private readonly record struct CandidatePlacement(
         PrefabVariant Variant,

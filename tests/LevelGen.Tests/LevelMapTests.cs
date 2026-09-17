@@ -70,6 +70,18 @@ public class LevelMapTests
     public void Indexer_ThrowsArgumentOutOfRangeException_ForInvalidCoordinates(int x, int y)
     {
         var map = new LevelMap(new TileKind[6], 3, 2);
-        Assert.Throws<ArgumentOutOfRangeException>(() => _ = map[x, y]);
+        Assert.Throws<ArgumentOutOfRangeException>("x", () => _ = map[x, y]);
+    }
+
+    [Fact]
+    public void AsLinearTiles_ReturnsTilesInSequence()
+    {
+        var tiles = new[] { TileKind.Empty, TileKind.Floor, TileKind.Wall, TileKind.Connector };
+        var map = new LevelMap(tiles, 2, 2);
+
+        var result = map.AsLinearTiles();
+
+        Assert.Equal(tiles.Length, result.Count);
+        Assert.Equal(tiles, result);
     }
 }
