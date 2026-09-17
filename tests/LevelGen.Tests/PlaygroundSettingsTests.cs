@@ -4,36 +4,18 @@ namespace LevelGen.Tests;
 
 public sealed class PlaygroundSettingsTests
 {
-    [Theory]
-    [InlineData("--blocks")]
-    [InlineData("--seed")]
-    [InlineData("--max-prefabs")]
-    [InlineData("--max-corridor-length")]
-    public void Parse_ThrowsArgumentException_WhenOptionValueIsMissing(string option)
+    [Fact]
+    public void Parse_ThrowsArgumentException_WhenUnknownArgumentIsProvided()
     {
-        var ex = Assert.Throws<ArgumentException>(() => PlaygroundSettings.Parse([option]));
-        Assert.Contains($"Option {option} requires a value.", ex.Message);
-    }
+        string[] args = ["--unknown-arg"];
 
-    [Theory]
-    [InlineData("--seed")]
-    [InlineData("--max-prefabs")]
-    [InlineData("--max-corridor-length")]
-    public void Parse_ThrowsArgumentException_WhenIntegerOptionIsInvalid(string option)
-    {
-        var ex = Assert.Throws<ArgumentException>(() => PlaygroundSettings.Parse([option, "not-an-int"]));
-        Assert.Contains($"Option {option} requires an integer value.", ex.Message);
+        var ex = Assert.Throws<ArgumentException>(() => PlaygroundSettings.Parse(args));
+
+        Assert.Contains("Unknown argument '--unknown-arg'", ex.Message);
     }
 
     [Fact]
-    public void Parse_ThrowsArgumentException_WhenUnknownArgumentGiven()
-    {
-        var ex = Assert.Throws<ArgumentException>(() => PlaygroundSettings.Parse(["--unknown"]));
-        Assert.Contains("Unknown argument '--unknown'", ex.Message);
-    }
-
-    [Fact]
-    public void Parse_ReturnsDefaultSettings_WhenArgsIsEmpty()
+    public void Parse_ReturnsDefaultValues_WhenArgsAreEmpty()
     {
         var settings = PlaygroundSettings.Parse([]);
 
@@ -48,13 +30,13 @@ public sealed class PlaygroundSettingsTests
     }
 
     [Fact]
-    public void Parse_ParsesAllValidOptionsCorrectly()
+    public void Parse_ParsesValidOptions()
     {
         string[] args = [
             "--seed", "12345",
-            "--blocks", "custom_blocks.txt",
-            "--max-prefabs", "12",
-            "--max-corridor-length", "15",
+            "--blocks", "path/to/blocks.txt",
+            "--max-prefabs", "10",
+            "--max-corridor-length", "12",
             "--no-loops",
             "--no-corridors",
             "--no-mirror",
@@ -64,12 +46,39 @@ public sealed class PlaygroundSettingsTests
         var settings = PlaygroundSettings.Parse(args);
 
         Assert.Equal(12345, settings.Seed);
-        Assert.Equal("custom_blocks.txt", settings.BlocksPath);
-        Assert.Equal(12, settings.MaxPrefabCount);
-        Assert.Equal(15, settings.MaxCorridorLength);
+        Assert.Equal("path/to/blocks.txt", settings.BlocksPath);
+        Assert.Equal(10, settings.MaxPrefabCount);
+        Assert.Equal(12, settings.MaxCorridorLength);
         Assert.False(settings.AllowLoops);
         Assert.False(settings.AllowGeneratedCorridors);
         Assert.False(settings.AllowMirrorTransforms);
         Assert.True(settings.RunOnce);
+    }
+
+    [Theory]
+    [InlineData("--seed")]
+    [InlineData("--blocks")]
+    [InlineData("--max-prefabs")]
+    [InlineData("--max-corridor-length")]
+    public void Parse_ThrowsArgumentException_WhenOptionValueIsMissing(string option)
+    {
+        string[] args = [option];
+
+        var ex = Assert.Throws<ArgumentException>(() => PlaygroundSettings.Parse(args));
+
+        Assert.Contains($"Option {option} requires a value.", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("--seed", "not-a-number")]
+    [InlineData("--max-prefabs", "abc")]
+    [InlineData("--max-corridor-length", "1.5")]
+    public void Parse_ThrowsArgumentException_WhenIntegerOptionHasInvalidValue(string option, string value)
+    {
+        string[] args = [option, value];
+
+        var ex = Assert.Throws<ArgumentException>(() => PlaygroundSettings.Parse(args));
+
+        Assert.Contains($"Option {option} requires an integer value.", ex.Message);
     }
 }
