@@ -67,4 +67,28 @@ public class DirectionExtensionsTests
         // Assert
         Assert.Equal(expectedDirection, result);
     }
+
+    [Theory]
+    [InlineData(Direction.North, Direction.South)]
+    [InlineData(Direction.East, Direction.West)]
+    [InlineData(Direction.South, Direction.North)]
+    [InlineData(Direction.West, Direction.East)]
+    public void Opposite_ReturnsOppositeDirection(Direction initialDirection, Direction expectedDirection)
+    {
+        // Act
+        var result = initialDirection.Opposite();
+
+        // Assert
+        Assert.Equal(expectedDirection, result);
+    }
+
+    [Fact]
+    public void Opposite_ThrowsArgumentOutOfRangeException_ForInvalidDirection()
+    {
+        var invalidDirection = (Direction)999;
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => invalidDirection.Opposite());
+
+        Assert.Equal("direction", exception.ParamName);
+    }
 }
