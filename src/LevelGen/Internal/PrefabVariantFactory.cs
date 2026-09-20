@@ -46,14 +46,14 @@ internal static class PrefabVariantFactory
                 var transformedConnections = TransformConnections(prefab, transform, connections);
                 var transformedDoodads = TransformDoodads(prefab, transform);
 
-                var variant = new PrefabVariant(
-                    prefab,
-                    transform,
-                    width,
-                    height,
-                    tiles,
-                    transformedConnections,
-                    transformedDoodads);
+                var variant = new PrefabVariantBuilder()
+                    .WithSource(prefab)
+                    .WithTransform(transform)
+                    .WithDimensions(width, height)
+                    .WithTiles(tiles)
+                    .WithConnections(transformedConnections)
+                    .WithDoodads(transformedDoodads)
+                    .Build();
 
                 if (seen.Add(variant))
                 {
