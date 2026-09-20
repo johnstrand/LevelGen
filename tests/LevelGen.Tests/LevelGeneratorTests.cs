@@ -152,4 +152,61 @@ public class LevelGeneratorTests
         Assert.NotNull(result);
         Assert.NotNull(result.Map);
     }
+
+    [Fact]
+    public void Generate_WithTargetWalkableTileCount_ReachesTargetWalkableTiles()
+    {
+        var prefabSet = LevelGen.Blocks.BlocksPrefabParser.Parse(TestPrefabs.Standard3x3Room);
+        var options = new GenerationOptions
+        {
+            Seed = 42,
+            TargetWalkableTileCount = 10,
+            MaxPrefabCount = null,
+            AllowGeneratedCorridors = true
+        };
+
+        var result = LevelGenerator.Generate(prefabSet, options);
+
+        Assert.NotNull(result);
+        var walkableCount = 0;
+        for (var y = 0; y < result.Map.Height; y++)
+        {
+            for (var x = 0; x < result.Map.Width; x++)
+            {
+                if (result.Map[x, y] == TileKind.Floor)
+                {
+                    walkableCount++;
+                }
+            }
+        }
+
+        Assert.True(walkableCount >= 10, $"Expected at least 10 walkable tiles, but got {walkableCount}");
+    }
+
+    [Fact]
+    public void Generate_WithBothTargetWalkableTileCountAndMaxPrefabCount_RespectsMaxPrefabCountLimit()
+    {
+        var prefabSet = LevelGen.Blocks.BlocksPrefabParser.Parse(TestPrefabs.Standard3x3Room);
+        var options = new GenerationOptions
+        {
+            Seed = 42,
+            TargetWalkableTileCount = 1000,
+            MaxPrefabCount = 2,
+            AllowGeneratedCorridors = false
+        };
+
+        var result = LevelGenerator.Generate(prefabSet, options);
+
+        Assert.NotNull(result);
+        var roomPlacements = 0;
+        foreach (var placement in result.Placements)
+        {
+            if (!placement.IsCorridor)
+            {
+                roomPlacements++;
+            }
+        }
+
+        Assert.True(roomPlacements <= 2, $"Expected at most 2 room placements, but got {roomPlacements}");
+    }
 }
