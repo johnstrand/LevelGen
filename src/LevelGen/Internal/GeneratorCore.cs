@@ -593,23 +593,31 @@ internal static class GeneratorCore
 
     private static bool IsContiguous(IReadOnlyDictionary<Point2, TileKind> tiles)
     {
-        var walkable = new HashSet<Point2>();
+        var floorCount = 0;
+        Point2 start = default;
+        var foundStart = false;
+
         foreach (var pair in tiles)
         {
             if (pair.Value == TileKind.Floor)
             {
-                walkable.Add(pair.Key);
+                if (!foundStart)
+                {
+                    start = pair.Key;
+                    foundStart = true;
+                }
+
+                floorCount++;
             }
         }
 
-        if (walkable.Count == 0)
+        if (floorCount == 0)
         {
             return false;
         }
 
         var visited = new HashSet<Point2>();
         var queue = new Queue<Point2>();
-        var start = walkable.First();
         visited.Add(start);
         queue.Enqueue(start);
 
@@ -619,14 +627,14 @@ internal static class GeneratorCore
             foreach (var direction in DirectionExtensions.AllDirections)
             {
                 var next = current + direction.Offset();
-                if (walkable.Contains(next) && visited.Add(next))
+                if (tiles.TryGetValue(next, out var kind) && kind == TileKind.Floor && visited.Add(next))
                 {
                     queue.Enqueue(next);
                 }
             }
         }
 
-        return visited.Count == walkable.Count;
+        return visited.Count == floorCount;
     }
 
     private static void ShuffleInPlace<T>(IList<T> items, Random random)
