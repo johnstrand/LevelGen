@@ -130,28 +130,38 @@ internal static class GeneratorCore
 
         foreach (var candidate in orderedCandidates)
         {
-            var nextState = state.Clone();
-            AddPlacement(
-                nextState,
+            var undoState = AddPlacement(
+                state,
                 candidate.Variant,
                 candidate.Origin,
                 candidate.IsCorridor,
                 candidate.LinkedExistingConnectorPositions,
                 candidate.LinkedCandidateConnectorPositions);
 
-            if (TryExpand(context, nextState, depth + 1, out result))
+            if (TryExpand(context, state, depth + 1, out result))
             {
                 return true;
             }
+
+            RemovePlacement(
+                state,
+                candidate.Variant,
+                candidate.Origin,
+                candidate.IsCorridor,
+                candidate.LinkedCandidateConnectorPositions,
+                undoState);
         }
 
-        if (state.OpenConnectors.Remove(selectedConnector.Position) &&
-            TryExpand(context, state, depth + 1, out result))
+        if (state.OpenConnectors.Remove(selectedConnector.Position, out var removedConnector))
         {
-            return true;
+            if (TryExpand(context, state, depth + 1, out result))
+            {
+                return true;
+            }
+
+            state.OpenConnectors[selectedConnector.Position] = removedConnector;
         }
 
-        state.OpenConnectors[selectedConnector.Position] = selectedConnector;
         result = GenerationResult.Empty;
         return false;
     }
@@ -434,7 +444,7 @@ internal static class GeneratorCore
         return true;
     }
 
-    private static void AddPlacement(
+    private static PlacementUndoState AddPlacement(
         LayoutState state,
         PrefabVariant variant,
         Point2 origin,
@@ -442,6 +452,13 @@ internal static class GeneratorCore
         HashSet<Point2> linkedExistingConnectorPositions,
         HashSet<Point2> linkedCandidateConnectorPositions)
     {
+        var undoState = new PlacementUndoState(
+            state.MinX,
+            state.MinY,
+            state.MaxX,
+            state.MaxY,
+            new List<OpenConnector>(linkedExistingConnectorPositions.Count));
+
         for (var y = 0; y < variant.Height; y++)
         {
             for (var x = 0; x < variant.Width; x++)
@@ -463,7 +480,11 @@ internal static class GeneratorCore
 
         foreach (var existing in linkedExistingConnectorPositions)
         {
-            state.OpenConnectors.Remove(existing);
+            if (state.OpenConnectors.Remove(existing, out var openConn))
+            {
+                undoState.RemovedExistingConnectors.Add(openConn);
+            }
+
             state.ConnectedConnectorPositions.Add(existing);
         }
 
@@ -491,6 +512,70 @@ internal static class GeneratorCore
         else
         {
             state.RoomPlacementCount++;
+        }
+
+        return undoState;
+    }
+
+    private static void RemovePlacement(
+        LayoutState state,
+        PrefabVariant variant,
+        Point2 origin,
+        bool isCorridor,
+        HashSet<Point2> linkedCandidateConnectorPositions,
+        in PlacementUndoState undoState)
+    {
+        state.MinX = undoState.MinX;
+        state.MinY = undoState.MinY;
+        state.MaxX = undoState.MaxX;
+        state.MaxY = undoState.MaxY;
+
+        if (isCorridor)
+        {
+            state.CorridorPlacementCount--;
+        }
+        else
+        {
+            state.RoomPlacementCount--;
+        }
+
+        state.Placements.RemoveAt(state.Placements.Count - 1);
+
+        foreach (var connection in variant.Connections)
+        {
+            var worldPosition = origin + connection.Position;
+            if (linkedCandidateConnectorPositions.Contains(worldPosition))
+            {
+                continue;
+            }
+
+            state.OpenConnectors.Remove(worldPosition);
+        }
+
+        foreach (var candidateConnection in linkedCandidateConnectorPositions)
+        {
+            state.ConnectedConnectorPositions.Remove(candidateConnection);
+        }
+
+        foreach (var openConn in undoState.RemovedExistingConnectors)
+        {
+            state.ConnectedConnectorPositions.Remove(openConn.Position);
+            state.OpenConnectors[openConn.Position] = openConn;
+        }
+
+        for (var y = 0; y < variant.Height; y++)
+        {
+            for (var x = 0; x < variant.Width; x++)
+            {
+                var tile = variant.Tiles[(y * variant.Width) + x];
+                if (tile == TileKind.Empty)
+                {
+                    continue;
+                }
+
+                var worldPos = origin + new Point2(x, y);
+                state.OccupiedTiles.Remove(worldPos);
+            }
         }
     }
 
@@ -668,25 +753,14 @@ internal static class GeneratorCore
             Placements = [];
         }
 
-        private LayoutState(LayoutState other)
-        {
-            OccupiedTiles = new(other.OccupiedTiles);
-            OpenConnectors = new(other.OpenConnectors);
-            ConnectedConnectorPositions = new(other.ConnectedConnectorPositions);
-            Placements = new(other.Placements);
-            RoomPlacementCount = other.RoomPlacementCount;
-            CorridorPlacementCount = other.CorridorPlacementCount;
-            MinX = other.MinX;
-            MinY = other.MinY;
-            MaxX = other.MaxX;
-            MaxY = other.MaxY;
-        }
-
-        public LayoutState Clone()
-        {
-            return new LayoutState(this);
-        }
     }
+
+    private readonly record struct PlacementUndoState(
+        int MinX,
+        int MinY,
+        int MaxX,
+        int MaxY,
+        List<OpenConnector> RemovedExistingConnectors);
 
     internal readonly record struct OpenConnector(Point2 Position, Direction Facing);
 
