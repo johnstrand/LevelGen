@@ -8,8 +8,8 @@ public sealed class GenerationOptions
     /// Gets the desired number of walkable tiles in the generated level.
     /// </summary>
     /// <remarks>
-    /// This option is currently accepted and validated but not yet used by the generation
-    /// engine. Setting it has no effect on the output.
+    /// When specified, level generation attempts to stop expanding as soon as the level reaches
+    /// or exceeds this number of walkable tiles.
     /// </remarks>
     public int? TargetWalkableTileCount { get; init; }
 

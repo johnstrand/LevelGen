@@ -61,6 +61,7 @@ var result = LevelGenerator.Generate(
     new GenerationOptions
     {
         Seed = 12345,
+        TargetWalkableTileCount = 100,
         MaxPrefabCount = 6,
         AllowLoops = true,
         AllowGeneratedCorridors = true,

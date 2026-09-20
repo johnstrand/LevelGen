@@ -13,8 +13,7 @@ internal static class GeneratorCore
 
         var (roomVariants, corridorVariants) = SetupVariants(prefabSet, options);
 
-        // TODO: TargetWalkableTileCount is not yet wired into generation; currently only MaxPrefabCount drives the room count.
-        var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
+        var targetRoomPlacements = options.MaxPrefabCount ?? (options.TargetWalkableTileCount.HasValue ? int.MaxValue : Math.Clamp(prefabSet.Count, 1, 10));
         var random = new Random(options.Seed);
         var context = new GeneratorContext(roomVariants, corridorVariants, targetRoomPlacements, options, random);
 
@@ -116,7 +115,11 @@ internal static class GeneratorCore
             return false;
         }
 
-        if ((state.RoomPlacementCount >= context.TargetRoomPlacements && TryFinalize(state, out result)) ||
+        var isTargetReached =
+            (context.Options.TargetWalkableTileCount.HasValue && state.WalkableTileCount >= context.Options.TargetWalkableTileCount.Value) ||
+            (state.RoomPlacementCount >= context.TargetRoomPlacements);
+
+        if ((isTargetReached && TryFinalize(state, out result)) ||
             (state.OpenConnectors.Count == 0 && TryFinalize(state, out result)))
         {
             return true;
@@ -189,10 +192,11 @@ internal static class GeneratorCore
         var orderedCandidates = new List<CandidatePlacement>(roomCandidates);
 
         var roomCandidateCount = roomCandidates.Count;
+        var maxCorridorPlacements = context.TargetRoomPlacements == int.MaxValue ? int.MaxValue : Math.Max(1, context.TargetRoomPlacements * 2);
         var canUseCorridors =
             context.Options.AllowGeneratedCorridors &&
             context.CorridorVariants.Count > 0 &&
-            state.CorridorPlacementCount < Math.Max(1, context.TargetRoomPlacements * 2) &&
+            state.CorridorPlacementCount < maxCorridorPlacements &&
             (roomCandidateCount == 0 || context.Random.NextDouble() < 0.35);
 
         if (canUseCorridors)
@@ -471,6 +475,7 @@ internal static class GeneratorCore
             state.MinY,
             state.MaxX,
             state.MaxY,
+            state.WalkableTileCount,
             new List<OpenConnector>(linkedExistingConnectorPositions.Count));
 
         for (var y = 0; y < variant.Height; y++)
@@ -484,6 +489,10 @@ internal static class GeneratorCore
                 }
 
                 var worldPos = origin + new Point2(x, y);
+                if (!state.OccupiedTiles.ContainsKey(worldPos) && tile.IsWalkable())
+                {
+                    state.WalkableTileCount++;
+                }
                 state.OccupiedTiles[worldPos] = tile;
                 if (worldPos.X < state.MinX) state.MinX = worldPos.X;
                 if (worldPos.Y < state.MinY) state.MinY = worldPos.Y;
@@ -543,6 +552,7 @@ internal static class GeneratorCore
         state.MinY = undoState.MinY;
         state.MaxX = undoState.MaxX;
         state.MaxY = undoState.MaxY;
+        state.WalkableTileCount = undoState.WalkableTileCount;
 
         if (isCorridor)
         {
@@ -759,6 +769,8 @@ internal static class GeneratorCore
 
         public int CorridorPlacementCount { get; set; }
 
+        public int WalkableTileCount { get; set; }
+
         public int MinX { get; set; } = int.MaxValue;
 
         public int MinY { get; set; } = int.MaxValue;
@@ -782,6 +794,7 @@ internal static class GeneratorCore
         int MinY,
         int MaxX,
         int MaxY,
+        int WalkableTileCount,
         List<OpenConnector> RemovedExistingConnectors);
 
     internal readonly record struct OpenConnector(Point2 Position, Direction Facing);
