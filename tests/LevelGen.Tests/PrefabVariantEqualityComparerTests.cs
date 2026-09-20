@@ -20,14 +20,14 @@ public sealed class PrefabVariantEqualityComparerTests
         PrefabDefinition? source = null,
         PrefabTransform? transform = null)
     {
-        return new PrefabVariant(
-            source ?? CreateTestPrefab(),
-            transform ?? PrefabTransform.Identity,
-            width,
-            height,
-            tiles ?? [TileKind.Floor, TileKind.Wall, TileKind.Floor, TileKind.Wall],
-            connections ?? [new PrefabConnectionPoint(new Point2(0, 0), Direction.North)],
-            doodads ?? []);
+        return new PrefabVariantBuilder()
+            .WithSource(source ?? CreateTestPrefab())
+            .WithTransform(transform ?? PrefabTransform.Identity)
+            .WithDimensions(width, height)
+            .WithTiles(tiles ?? [TileKind.Floor, TileKind.Wall, TileKind.Floor, TileKind.Wall])
+            .WithConnections(connections ?? [new PrefabConnectionPoint(new Point2(0, 0), Direction.North)])
+            .WithDoodads(doodads ?? [])
+            .Build();
     }
 
     [Fact]
