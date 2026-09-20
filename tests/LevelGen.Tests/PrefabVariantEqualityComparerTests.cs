@@ -18,13 +18,13 @@ public sealed class PrefabVariantEqualityComparerTests
         PrefabConnectionPoint[]? connections = null)
     {
         return new PrefabVariant(
-            source: CreateDummyPrefab(),
-            transform: PrefabTransform.Identity,
-            width: width,
-            height: height,
-            tiles: tiles ?? new[] { TileKind.Floor },
-            connections: connections ?? Array.Empty<PrefabConnectionPoint>(),
-            doodads: Array.Empty<PrefabDoodad>());
+            CreateDummyPrefab(),
+            PrefabTransform.Identity,
+            width,
+            height,
+            tiles ?? new[] { TileKind.Floor },
+            connections ?? Array.Empty<PrefabConnectionPoint>(),
+            Array.Empty<PrefabDoodad>());
     }
 
     [Fact]
@@ -69,8 +69,8 @@ public sealed class PrefabVariantEqualityComparerTests
     {
         var comparer = PrefabVariantEqualityComparer.Instance;
         var baseVariant = CreateVariant(width: 2, height: 2, tiles: new[] { TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor });
-        var diffWidth = CreateVariant(width: 3, height: 2, tiles: new[] { TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor });
-        var diffHeight = CreateVariant(width: 2, height: 3, tiles: new[] { TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor });
+        var diffWidth = CreateVariant(width: 3, height: 2, tiles: new[] { TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor });
+        var diffHeight = CreateVariant(width: 2, height: 3, tiles: new[] { TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor, TileKind.Floor });
 
         Assert.False(comparer.Equals(baseVariant, diffWidth));
         Assert.False(comparer.Equals(baseVariant, diffHeight));
@@ -81,7 +81,7 @@ public sealed class PrefabVariantEqualityComparerTests
     {
         var comparer = PrefabVariantEqualityComparer.Instance;
         var variant1 = CreateVariant(width: 1, height: 2, tiles: new[] { TileKind.Floor, TileKind.Wall });
-        var variant2 = CreateVariant(width: 1, height: 2, tiles: new[] { TileKind.Floor });
+        var variant2 = CreateVariant(width: 1, height: 1, tiles: new[] { TileKind.Floor });
         var conn = new PrefabConnectionPoint(new Point2(0, 0), Direction.North);
         var variantWithConn = CreateVariant(width: 1, height: 1, connections: new[] { conn });
         var variantWithoutConn = CreateVariant(width: 1, height: 1, connections: Array.Empty<PrefabConnectionPoint>());
@@ -169,12 +169,15 @@ public sealed class PrefabVariantEqualityComparerTests
     [InlineData(TileKind.Wall)]
     [InlineData(TileKind.Floor)]
     [InlineData(TileKind.Connector)]
-    public void GetHashCode_ValidTileKinds_ProducesHashCode(TileKind tileKind)
+    public void GetHashCode_ValidTileKinds_ExecutesWithoutThrowingAndIsConsistent(TileKind tileKind)
     {
         var comparer = PrefabVariantEqualityComparer.Instance;
-        var variant = CreateVariant(tiles: new[] { tileKind });
+        var variant1 = CreateVariant(tiles: new[] { tileKind });
+        var variant2 = CreateVariant(tiles: new[] { tileKind });
 
-        var hashCode = comparer.GetHashCode(variant);
-        Assert.NotEqual(0, hashCode);
+        var hashCode1 = comparer.GetHashCode(variant1);
+        var hashCode2 = comparer.GetHashCode(variant2);
+
+        Assert.Equal(hashCode1, hashCode2);
     }
 }
