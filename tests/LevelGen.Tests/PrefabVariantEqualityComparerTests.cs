@@ -17,14 +17,15 @@ public sealed class PrefabVariantEqualityComparerTests
         TileKind[]? tiles = null,
         PrefabConnectionPoint[]? connections = null)
     {
-        return new PrefabVariant(
-            CreateDummyPrefab(),
-            PrefabTransform.Identity,
-            width,
-            height,
-            tiles ?? new[] { TileKind.Floor },
-            connections ?? Array.Empty<PrefabConnectionPoint>(),
-            Array.Empty<PrefabDoodad>());
+        return new PrefabVariantBuilder()
+            .WithSource(CreateDummyPrefab())
+            .WithTransform(PrefabTransform.Identity)
+            .WithWidth(width)
+            .WithHeight(height)
+            .WithTiles(tiles ?? new[] { TileKind.Floor })
+            .WithConnections(connections ?? Array.Empty<PrefabConnectionPoint>())
+            .WithDoodads(Array.Empty<PrefabDoodad>())
+            .Build();
     }
 
     [Fact]
