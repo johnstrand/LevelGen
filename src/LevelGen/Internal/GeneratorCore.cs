@@ -11,6 +11,20 @@ internal static class GeneratorCore
         ArgumentNullException.ThrowIfNull(prefabSet);
         ArgumentNullException.ThrowIfNull(options);
 
+        var (roomVariants, corridorVariants) = SetupVariants(prefabSet, options);
+
+        // TODO: TargetWalkableTileCount is not yet wired into generation; currently only MaxPrefabCount drives the room count.
+        var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
+        var random = new Random(options.Seed);
+        var context = new GeneratorContext(roomVariants, corridorVariants, targetRoomPlacements, options, random);
+
+        return ExecuteGenerationLoop(context);
+    }
+
+    private static (IReadOnlyList<PrefabVariant> RoomVariants, IReadOnlyList<PrefabVariant> CorridorVariants) SetupVariants(
+        PrefabSet prefabSet,
+        GenerationOptions options)
+    {
         var roomVariants = prefabSet
             .SelectMany(prefab => PrefabVariantFactory.CreateVariants(prefab, options.AllowMirrorTransforms))
             .ToArray();
@@ -26,11 +40,11 @@ internal static class GeneratorCore
                 .ToArray()
             : [];
 
-        // TODO: TargetWalkableTileCount is not yet wired into generation; currently only MaxPrefabCount drives the room count.
-        var targetRoomPlacements = Math.Max(1, options.MaxPrefabCount ?? Math.Clamp(prefabSet.Count, 1, 10));
-        var random = new Random(options.Seed);
-        var context = new GeneratorContext(roomVariants, corridorVariants, targetRoomPlacements, options, random);
+        return (roomVariants, corridorVariants);
+    }
 
+    private static GenerationResult ExecuteGenerationLoop(GeneratorContext context)
+    {
         GenerationResult? bestResult = null;
         int minDeviation = int.MaxValue;
 
@@ -42,7 +56,7 @@ internal static class GeneratorCore
 
             if (TryExpand(context, state, depth: 0, out var result))
             {
-                var deviation = CalculateDeviation(result.Map.Width, result.Map.Height, options);
+                var deviation = CalculateDeviation(result.Map.Width, result.Map.Height, context.Options);
                 if (deviation == 0)
                 {
                     return result;
