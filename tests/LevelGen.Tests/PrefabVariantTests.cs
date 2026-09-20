@@ -14,67 +14,82 @@ public sealed class PrefabVariantTests
     }
 
     [Fact]
+    public void Constructor_NullOptions_ThrowsArgumentNullException()
+    {
+        var exception = Assert.Throws<ArgumentNullException>(() => new PrefabVariant(null!));
+        Assert.Equal("options", exception.ParamName);
+    }
+
+    [Fact]
     public void Constructor_NullSource_ThrowsArgumentNullException()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-            new PrefabVariant(
-                source: null!,
-                transform: PrefabTransform.Identity,
-                width: 1,
-                height: 1,
-                tiles: [],
-                connections: [],
-                doodads: []));
+        var options = new PrefabVariantOptions
+        {
+            Source = null!,
+            Transform = PrefabTransform.Identity,
+            Width = 1,
+            Height = 1,
+            Tiles = [],
+            Connections = [],
+            Doodads = [],
+        };
 
-        Assert.Equal("source", exception.ParamName);
+        var exception = Assert.Throws<ArgumentNullException>(() => new PrefabVariant(options));
+        Assert.Equal("Source", exception.ParamName);
     }
 
     [Fact]
     public void Constructor_NullTiles_ThrowsArgumentNullException()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-            new PrefabVariant(
-                source: CreateTestPrefab(),
-                transform: PrefabTransform.Identity,
-                width: 1,
-                height: 1,
-                tiles: null!,
-                connections: [],
-                doodads: []));
+        var options = new PrefabVariantOptions
+        {
+            Source = CreateTestPrefab(),
+            Transform = PrefabTransform.Identity,
+            Width = 1,
+            Height = 1,
+            Tiles = null!,
+            Connections = [],
+            Doodads = [],
+        };
 
-        Assert.Equal("tiles", exception.ParamName);
+        var exception = Assert.Throws<ArgumentNullException>(() => new PrefabVariant(options));
+        Assert.Equal("Tiles", exception.ParamName);
     }
 
     [Fact]
     public void Constructor_NullConnections_ThrowsArgumentNullException()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-            new PrefabVariant(
-                source: CreateTestPrefab(),
-                transform: PrefabTransform.Identity,
-                width: 1,
-                height: 1,
-                tiles: [],
-                connections: null!,
-                doodads: []));
+        var options = new PrefabVariantOptions
+        {
+            Source = CreateTestPrefab(),
+            Transform = PrefabTransform.Identity,
+            Width = 1,
+            Height = 1,
+            Tiles = [],
+            Connections = null!,
+            Doodads = [],
+        };
 
-        Assert.Equal("connections", exception.ParamName);
+        var exception = Assert.Throws<ArgumentNullException>(() => new PrefabVariant(options));
+        Assert.Equal("Connections", exception.ParamName);
     }
 
     [Fact]
     public void Constructor_NullDoodads_ThrowsArgumentNullException()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-            new PrefabVariant(
-                source: CreateTestPrefab(),
-                transform: PrefabTransform.Identity,
-                width: 1,
-                height: 1,
-                tiles: [],
-                connections: [],
-                doodads: null!));
+        var options = new PrefabVariantOptions
+        {
+            Source = CreateTestPrefab(),
+            Transform = PrefabTransform.Identity,
+            Width = 1,
+            Height = 1,
+            Tiles = [],
+            Connections = [],
+            Doodads = null!,
+        };
 
-        Assert.Equal("doodads", exception.ParamName);
+        var exception = Assert.Throws<ArgumentNullException>(() => new PrefabVariant(options));
+        Assert.Equal("Doodads", exception.ParamName);
     }
 
     [Fact]
@@ -88,14 +103,15 @@ public sealed class PrefabVariantTests
         var connections = new[] { new PrefabConnectionPoint(new Point2(0, 0), Direction.North) };
         var doodads = new[] { new PrefabDoodad(new Point2(1, 1), 'x') };
 
-        var variant = new PrefabVariant(
-            source,
-            transform,
-            width,
-            height,
-            tiles,
-            connections,
-            doodads);
+        var variant = new PrefabVariantBuilder()
+            .WithSource(source)
+            .WithTransform(transform)
+            .WithWidth(width)
+            .WithHeight(height)
+            .WithTiles(tiles)
+            .WithConnections(connections)
+            .WithDoodads(doodads)
+            .Build();
 
         Assert.Same(source, variant.Source);
         Assert.Equal(transform, variant.Transform);
@@ -122,14 +138,14 @@ public sealed class PrefabVariantTests
         };
 
         Assert.Throws<ArgumentException>(() =>
-            new PrefabVariant(
-                source: CreateTestPrefab(),
-                transform: PrefabTransform.Identity,
-                width: 1,
-                height: 1,
-                tiles: [TileKind.Wall],
-                connections: connections,
-                doodads: []));
+            new PrefabVariantBuilder()
+                .WithSource(CreateTestPrefab())
+                .WithTransform(PrefabTransform.Identity)
+                .WithDimensions(1, 1)
+                .WithTiles([TileKind.Wall])
+                .WithConnections(connections)
+                .WithDoodads([])
+                .Build());
     }
 
     [Fact]
@@ -139,14 +155,14 @@ public sealed class PrefabVariantTests
         var connections = new[] { new PrefabConnectionPoint(new Point2(0, 0), Direction.North) };
         var doodads = new[] { new PrefabDoodad(new Point2(1, 1), 'x') };
 
-        var variant = new PrefabVariant(
-            CreateTestPrefab(),
-            PrefabTransform.Identity,
-            2,
-            1,
-            tiles,
-            connections,
-            doodads);
+        var variant = new PrefabVariantBuilder()
+            .WithSource(CreateTestPrefab())
+            .WithTransform(PrefabTransform.Identity)
+            .WithDimensions(2, 1)
+            .WithTiles(tiles)
+            .WithConnections(connections)
+            .WithDoodads(doodads)
+            .Build();
 
         tiles[0] = TileKind.Empty;
         connections[0] = new PrefabConnectionPoint(new Point2(0, 0), Direction.East);
@@ -161,14 +177,14 @@ public sealed class PrefabVariantTests
     public void LocalConnections_NonExistentPosition_ReturnsFalse()
     {
         var connections = new[] { new PrefabConnectionPoint(new Point2(0, 0), Direction.North) };
-        var variant = new PrefabVariant(
-            CreateTestPrefab(),
-            PrefabTransform.Identity,
-            1,
-            1,
-            [TileKind.Wall],
-            connections,
-            []);
+        var variant = new PrefabVariantBuilder()
+            .WithSource(CreateTestPrefab())
+            .WithTransform(PrefabTransform.Identity)
+            .WithDimensions(1, 1)
+            .WithTiles([TileKind.Wall])
+            .WithConnections(connections)
+            .WithDoodads([])
+            .Build();
 
         Assert.False(variant.LocalConnections.ContainsKey(new Point2(99, 99)));
         Assert.False(variant.LocalConnections.TryGetValue(new Point2(99, 99), out _));

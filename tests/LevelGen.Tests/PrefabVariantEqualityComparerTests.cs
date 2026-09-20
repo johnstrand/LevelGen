@@ -16,14 +16,17 @@ public sealed class PrefabVariantEqualityComparerTests
         PrefabDoodad[]? doodads = null)
     {
         var source = new PrefabDefinition("TestPrefab", 1, 1, new[] { TileKind.Wall });
-        return new PrefabVariant(
-            source,
-            PrefabTransform.Identity,
-            width,
-            height,
-            tiles ?? new[] { TileKind.Wall },
-            connections ?? Array.Empty<PrefabConnectionPoint>(),
-            doodads ?? Array.Empty<PrefabDoodad>());
+        var options = new PrefabVariantOptions
+        {
+            Source = source,
+            Transform = PrefabTransform.Identity,
+            Width = width,
+            Height = height,
+            Tiles = tiles ?? new[] { TileKind.Wall },
+            Connections = connections ?? Array.Empty<PrefabConnectionPoint>(),
+            Doodads = doodads ?? Array.Empty<PrefabDoodad>()
+        };
+        return new PrefabVariant(options);
     }
 
     [Fact]
