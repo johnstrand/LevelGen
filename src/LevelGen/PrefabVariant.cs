@@ -11,8 +11,14 @@ public sealed class PrefabVariant
         Width = options.Width;
         Height = options.Height;
         Tiles = options.Tiles?.ToArray() ?? throw new ArgumentNullException(nameof(options.Tiles));
-        Connections = options.Connections?.ToArray() ?? throw new ArgumentNullException(nameof(options.Connections));
-        LocalConnections = Connections.ToDictionary(connection => connection.Position);
+        var connectionArray = options.Connections?.ToArray() ?? throw new ArgumentNullException(nameof(options.Connections));
+        Connections = connectionArray;
+        var localConnections = new Dictionary<Point2, PrefabConnectionPoint>(connectionArray.Length);
+        foreach (var connection in connectionArray)
+        {
+            localConnections.Add(connection.Position, connection);
+        }
+        LocalConnections = localConnections;
         Doodads = options.Doodads?.ToArray() ?? throw new ArgumentNullException(nameof(options.Doodads));
     }
 
