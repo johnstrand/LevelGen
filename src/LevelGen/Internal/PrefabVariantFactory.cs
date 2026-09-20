@@ -90,26 +90,51 @@ internal static class PrefabVariantFactory
 
     private static PrefabConnectionPoint[] TransformConnections(PrefabDefinition prefab, PrefabTransform transform, IReadOnlyList<PrefabConnectionPoint> connections)
     {
-        return connections
-            .Select(connection => new PrefabConnectionPoint(
+        var count = connections.Count;
+        var result = new PrefabConnectionPoint[count];
+        for (var i = 0; i < count; i++)
+        {
+            var connection = connections[i];
+            result[i] = new PrefabConnectionPoint(
                 TransformPoint(connection.Position, prefab.Width, prefab.Height, transform),
-                TransformDirection(connection.Facing, transform)))
-            .OrderBy(connection => connection.Position.Y)
-            .ThenBy(connection => connection.Position.X)
-            .ThenBy(connection => connection.Facing)
-            .ToArray();
+                TransformDirection(connection.Facing, transform));
+        }
+
+        Array.Sort(result, static (a, b) =>
+        {
+            var cmp = a.Position.Y.CompareTo(b.Position.Y);
+            if (cmp != 0) return cmp;
+            cmp = a.Position.X.CompareTo(b.Position.X);
+            if (cmp != 0) return cmp;
+            return a.Facing.CompareTo(b.Facing);
+        });
+
+        return result;
     }
 
     private static PrefabDoodad[] TransformDoodads(PrefabDefinition prefab, PrefabTransform transform)
     {
-        return prefab.Doodads
-            .Select(doodad => new PrefabDoodad(
+        var doodads = prefab.Doodads;
+        var count = doodads.Count;
+        var result = new PrefabDoodad[count];
+        for (var i = 0; i < count; i++)
+        {
+            var doodad = doodads[i];
+            result[i] = new PrefabDoodad(
                 TransformPoint(doodad.Position, prefab.Width, prefab.Height, transform),
-                doodad.Marker))
-            .OrderBy(doodad => doodad.Position.Y)
-            .ThenBy(doodad => doodad.Position.X)
-            .ThenBy(doodad => doodad.Marker)
-            .ToArray();
+                doodad.Marker);
+        }
+
+        Array.Sort(result, static (a, b) =>
+        {
+            var cmp = a.Position.Y.CompareTo(b.Position.Y);
+            if (cmp != 0) return cmp;
+            cmp = a.Position.X.CompareTo(b.Position.X);
+            if (cmp != 0) return cmp;
+            return a.Marker.CompareTo(b.Marker);
+        });
+
+        return result;
     }
 
     public static bool TryInferConnectorFacing(PrefabDefinition prefab, int x, int y, out Direction facing)
