@@ -4,9 +4,10 @@
 
 It includes:
 
-- **`src\LevelGen`**: core generator library
-- **`src\LevelGen.Playground`**: console playground for rerolling maps
-- **`tests\LevelGen.Tests`**: xUnit tests for parser and generator behavior
+- **`src/LevelGen`**: core generator library
+- **`src/LevelGen.Playground`**: console playground for rerolling maps
+- **`tests/LevelGen.Tests`**: xUnit tests for parser and generator behavior
+- **`tests/LevelGen.Benchmarks`**: BenchmarkDotNet benchmarks for parser, generator, and variant processing
 
 ## Requirements
 
@@ -23,10 +24,10 @@ dotnet build LevelGen.slnx
 From the repository root:
 
 ```powershell
-dotnet run --project src\LevelGen.Playground -- --once
+dotnet run --project src/LevelGen.Playground -- --once
 ```
 
-The playground will auto-discover `blocks.txt` (included at `src\LevelGen.Playground\blocks.txt`), generate a level, print the ASCII map, and exit.
+The playground will auto-discover `blocks.txt` (included at `src/LevelGen.Playground/blocks.txt`), generate a level, print the ASCII map, and exit.
 
 Useful options:
 
@@ -38,6 +39,7 @@ Useful options:
 - `--no-corridors`: disable generated corridors
 - `--no-mirror`: disable mirrored prefab variants
 - `--once`: generate once and exit
+- `--help` or `-h`: display usage information
 
 ## Generation model
 
@@ -53,7 +55,7 @@ Useful options:
 using LevelGen;
 using LevelGen.Blocks;
 
-var text = File.ReadAllText(@"src\LevelGen.Playground\blocks.txt");
+var text = File.ReadAllText(@"src/LevelGen.Playground/blocks.txt");
 var prefabSet = BlocksPrefabParser.Parse(text);
 
 var result = LevelGenerator.Generate(
@@ -63,6 +65,10 @@ var result = LevelGenerator.Generate(
         Seed = 12345,
         TargetWalkableTileCount = 100,
         MaxPrefabCount = 6,
+        MinWidth = 10,
+        MaxWidth = 50,
+        MinHeight = 10,
+        MaxHeight = 50,
         AllowLoops = true,
         AllowGeneratedCorridors = true,
         AllowMirrorTransforms = true,
@@ -94,13 +100,27 @@ Supported tokens:
 ## Test
 
 ```powershell
-dotnet test tests\LevelGen.Tests\LevelGen.Tests.csproj
+dotnet test tests/LevelGen.Tests/LevelGen.Tests.csproj
 ```
 
 Generate a Cobertura coverage report:
 
 ```powershell
-dotnet test tests\LevelGen.Tests\LevelGen.Tests.csproj --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory .\TestResults\Coverage
+dotnet test tests/LevelGen.Tests/LevelGen.Tests.csproj --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory ./TestResults/Coverage
+```
+
+## Benchmarks
+
+Run benchmarks using BenchmarkDotNet:
+
+```powershell
+dotnet run -c Release --project tests/LevelGen.Benchmarks/LevelGen.Benchmarks.csproj -- --job short
+```
+
+Filter for a specific benchmark class:
+
+```powershell
+dotnet run -c Release --project tests/LevelGen.Benchmarks/LevelGen.Benchmarks.csproj -- --job short --filter "*GeneratorBenchmark*"
 ```
 
 ## Troubleshooting prefab input
