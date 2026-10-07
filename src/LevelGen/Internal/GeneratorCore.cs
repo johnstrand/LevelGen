@@ -119,8 +119,8 @@ internal static class GeneratorCore
             (context.Options.TargetWalkableTileCount.HasValue && state.WalkableTileCount >= context.Options.TargetWalkableTileCount.Value) ||
             (state.RoomPlacementCount >= context.TargetRoomPlacements);
 
-        if ((isTargetReached && TryFinalize(state, out result)) ||
-            (state.OpenConnectors.Count == 0 && TryFinalize(state, out result)))
+        if ((isTargetReached && TryFinalize(context, state, out result)) ||
+            (state.OpenConnectors.Count == 0 && TryFinalize(context, state, out result)))
         {
             return true;
         }
@@ -139,7 +139,7 @@ internal static class GeneratorCore
         if (!ChooseNextConnector(context, state, out var selectedConnector, out var roomCandidates))
         {
             result = GenerationResult.Empty;
-            return TryFinalize(state, out result);
+            return TryFinalize(context, state, out result);
         }
 
         var orderedCandidates = GetShuffledCandidates(
@@ -603,7 +603,7 @@ internal static class GeneratorCore
         }
     }
 
-    private static bool TryFinalize(LayoutState state, out GenerationResult result)
+    private static bool TryFinalize(GeneratorContext context, LayoutState state, out GenerationResult result)
     {
         if (state.OccupiedTiles.Count == 0)
         {
@@ -613,7 +613,7 @@ internal static class GeneratorCore
 
         var finalized = BuildFinalizedTiles(state);
 
-        if (!IsContiguous(finalized))
+        if (!IsContiguous(context, finalized))
         {
             result = GenerationResult.Empty;
             return false;
@@ -700,7 +700,7 @@ internal static class GeneratorCore
         return new GenerationResult(new LevelMap(tiles, width, height), placedPrefabs);
     }
 
-    private static bool IsContiguous(IReadOnlyDictionary<Point2, TileKind> tiles)
+    private static bool IsContiguous(GeneratorContext context, IReadOnlyDictionary<Point2, TileKind> tiles)
     {
         var floorCount = 0;
         Point2 start = default;
@@ -725,8 +725,11 @@ internal static class GeneratorCore
             return false;
         }
 
-        var visited = new HashSet<Point2>();
-        var queue = new Queue<Point2>();
+        var visited = context.ScratchVisited;
+        var queue = context.ScratchQueue;
+        visited.Clear();
+        queue.Clear();
+
         visited.Add(start);
         queue.Enqueue(start);
 
