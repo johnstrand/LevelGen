@@ -9,4 +9,6 @@ internal sealed record GeneratorContext(
 {
     public HashSet<Point2> ScratchLinkedExisting { get; } = [];
     public HashSet<Point2> ScratchLinkedCandidate { get; } = [];
+    public HashSet<Point2> ScratchVisited { get; } = [];
+    public Queue<Point2> ScratchQueue { get; } = [];
 }
