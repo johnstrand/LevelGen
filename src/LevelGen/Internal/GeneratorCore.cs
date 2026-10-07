@@ -687,15 +687,18 @@ internal static class GeneratorCore
             tiles[(y * width) + x] = pair.Value;
         }
 
-        var placedPrefabs = state.Placements
-            .Select(placement => new PlacedPrefab(
+        var placedPrefabs = new PlacedPrefab[state.Placements.Count];
+        for (var i = 0; i < state.Placements.Count; i++)
+        {
+            var placement = state.Placements[i];
+            placedPrefabs[i] = new PlacedPrefab(
                 placement.Variant.Source.Name,
                 new Point2(placement.Origin.X - minX, placement.Origin.Y - minY),
                 placement.Variant.Transform,
                 placement.Variant.Width,
                 placement.Variant.Height,
-                placement.IsCorridor))
-            .ToArray();
+                placement.IsCorridor);
+        }
 
         return new GenerationResult(new LevelMap(tiles, width, height), placedPrefabs);
     }
