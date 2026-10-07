@@ -56,15 +56,16 @@ internal sealed class PrefabVariantEqualityComparer : IEqualityComparer<PrefabVa
         hash.Add(obj.Width);
         hash.Add(obj.Height);
 
-        foreach (var tile in obj.Tiles)
+        for (var i = 0; i < obj.Tiles.Count; i++)
         {
+            var tile = obj.Tiles[i];
             ValidateTileKind(tile);
             hash.Add(tile);
         }
 
-        foreach (var connection in obj.Connections)
+        for (var i = 0; i < obj.Connections.Count; i++)
         {
-            hash.Add(connection);
+            hash.Add(obj.Connections[i]);
         }
 
         return hash.ToHashCode();
