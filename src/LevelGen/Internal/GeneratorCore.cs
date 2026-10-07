@@ -49,13 +49,8 @@ internal static class GeneratorCore
 
         for (var attempt = 0; attempt < MaxGenerationAttempts; attempt++)
         {
-            var seed = context.RoomVariants[context.Random.Next(context.RoomVariants.Count)];
-            var state = new LayoutState();
-            AddPlacement(state, seed, new Point2(0, 0), isCorridor: false, [], []);
-
-            if (TryExpand(context, state, depth: 0, out var result))
+            if (TryGenerateAttempt(context, out var result, out var deviation))
             {
-                var deviation = CalculateDeviation(result.Map.Width, result.Map.Height, context.Options);
                 if (deviation == 0)
                 {
                     return result;
@@ -75,6 +70,27 @@ internal static class GeneratorCore
         }
 
         throw new InvalidOperationException("Unable to generate a valid contiguous level from the supplied prefabs.");
+    }
+
+    private static bool TryGenerateAttempt(
+        GeneratorContext context,
+        [NotNullWhen(true)] out GenerationResult? result,
+        out int deviation)
+    {
+        var seed = context.RoomVariants[context.Random.Next(context.RoomVariants.Count)];
+        var state = new LayoutState();
+        AddPlacement(state, seed, new Point2(0, 0), isCorridor: false, [], []);
+
+        if (TryExpand(context, state, depth: 0, out var expandedResult))
+        {
+            deviation = CalculateDeviation(expandedResult.Map.Width, expandedResult.Map.Height, context.Options);
+            result = expandedResult;
+            return true;
+        }
+
+        deviation = int.MaxValue;
+        result = null;
+        return false;
     }
 
     private static int CalculateDeviation(int width, int height, GenerationOptions options)
